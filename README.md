@@ -1,2 +1,2 @@
-# DSCI_575_project_alw14_
+# DSCI_575_project_alx649_joelyp
 LLM powered product recommender for Amazon.
