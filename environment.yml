@@ -39,6 +39,7 @@ dependencies:
   - pygraphviz
   - pydot
   - pip
+  - duckdb
   - duckdb-python
   - fastparquet
   - pip:
