@@ -27,9 +27,15 @@ def score_query(text_column,query):
 
     return scores_series
 
-
-
-
+def query_k_highest(text_column,query,k = 10):
+    """
+    Returns the documents with the k highest scores for the query.
+    
+    text_column -> tokenized text column from either meta_clean.csv or reviews_clean.csv
+    query -> text query 
+    k -> number of documents to return (if greater than the number of documents or -1, defaults to returning all)
+    """
+    pass
 
 
 
