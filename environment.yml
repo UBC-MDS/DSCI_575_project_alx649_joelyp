@@ -39,6 +39,9 @@ dependencies:
   - pygraphviz
   - pydot
   - pip
+  - duckdb
+  - duckdb-python
+  - fastparquet
   - pip:
     - torch-summary
     - otter-grader
@@ -47,6 +50,7 @@ dependencies:
     - mglearn
     - transformers
     - langchain
+    - langchain-core
     - langchain-community
     - langchain-openai
     - langchain-groq
