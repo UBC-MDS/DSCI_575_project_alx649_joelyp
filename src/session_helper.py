@@ -102,27 +102,3 @@ def create_langchain_review_generator(con):
                     'image_url': row['image_url']
                 }
             )
-
-
-
-def setup_meta_search_table(con):
-    """
-    This might be better done in milestone1_exploration.ipynb
-    """
-    print("Preparing search table...")
-    con.execute("""
-        CREATE OR REPLACE TABLE meta_search AS
-        SELECT 
-            parent_asin,
-            (COALESCE(CAST(title AS VARCHAR), '') || ' ' || 
-             COALESCE(CAST(features AS VARCHAR), '') || ' ' || 
-             COALESCE(CAST(description AS VARCHAR), '')) AS page_content,
-            title,
-            average_rating,
-            price,
-            store,
-            image_url
-        FROM meta
-    """)
-
-    con.execute("PRAGMA create_fts_index('meta_search', 'parent_asin', 'page_content')", overwrite = 1)

@@ -1,15 +1,28 @@
+from session_helper import *
+
 import pandas as pd
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.documents import Document
 
-from session_helper import *
+from nltk.tokenize import word_tokenize
+import string
 
-def tokenize(query):
-    """
-    TODO: look back at nltk package for implementation
-    Generic helper function for tokenizing text.
-    """
-    return query
+# nltk.download('punkt') already done from preprocessing
+PUNCT_SET = set(string.punctuation)
+
+
+def preprocess_for_search(text):
+    if not text:
+        return ""
+    
+    tokens = word_tokenize(text.lower())
+    
+    clean_tokens = [
+        t for t in tokens 
+        if t not in PUNCT_SET and t.isalnum()
+    ]
+    
+    return " ".join(clean_tokens)
 
 def score_query(text_column,query):
     """
@@ -42,18 +55,15 @@ def query_k_highest(text_column,query,k = 10):
 
 
 
-
-
-
-
 if __name__ == "__main__":
     print("Startup session")
     con = init_session()
     
+    basic_query = preprocess_for_search("lawnmower")
     
-    # 3. Query the 'meta_search' table (not 'reviews')
-    basic_query = "lawnmower"
-    
+    # if search table is already built in preprocessing
+
+
     print("Running query...")
     results = con.execute(f"""
         SELECT 
