@@ -11,6 +11,14 @@ conda env create -f environment.yml
 conda activate amazon-recommender
 ```
 
+Once this is done, download the `Patio_Lawn_and_Garden` dataset from [https://amazon-reviews-2023.github.io](https://amazon-reviews-2023.github.io) and store both `meta_Patio_Lawn_and_Garden.jsonl` and `Patio_Lawn_and_Garden.jsonl` in the `data/raw` folder. Then run all cells in `notebooks/milestone1_exploration.ipynb` to generate the following files:
+- Sample JSON files containing the first 100 entries from each file (`data/processed/meta_Patio_Lawn_and_Garden_sample.jsonl` and `data/procssed/Patio_Lawn_and_Garden_sample.jsonl`)
+- Cleaned up CSV files containing only the required subset of the raw JSON data (`data/processed/meta_clean.csv` and `data/processed/reviews_clean.csv`)
+- Parquet files from the CSV files generated (`data/processed/meta_clean.parquet` and `data/processed/reviews_clean.parquet`)
+- DuckDB tables for use in the actual searches (`data/processed/amazon_reviews.duckdb`)
+
+Note that the full generation of these files will take around 10 minutes to complete, which may be faster depending on computer RAM and processing power. You should also ensure at least 10 GB of additional hard disk memory to store the generated files.
+
 Use the following command to run the app locally (note this may take a while to load depending on computer):
 
 ```
