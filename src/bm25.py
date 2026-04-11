@@ -24,34 +24,43 @@ def preprocess_for_search(text):
     
     return " ".join(clean_tokens)
 
-def score_query(text_column,query):
-    """
-    Returns a Series object with the BM25 scores for each given text (assumes this is already tokenized)
 
-    text_column -> tokenized text column from either meta_clean.csv or reviews_clean.csv
-    query -> text query 
-
-    NOTE: Do NOT use this yet, keep pandas as far out of this as possible
-    """
-
-    # Set up the documents for BM25Retriever (This part may be preprocessable)
-    documents = [Document(page_content = text) for text in text_column]
-    retriever = BM25Retriever.from_documents(documents)
-
-    # Run query and return results
-    scores_series = pd.Series(retriever.vectorizer.get_scores(tokenize(query)))
-
-    return scores_series
-
-def query_k_highest(text_column,query,k = 10):
+def query_k_highest(con: DuckDBPyConnection , query: str,k: int = 10):
     """
     Returns the documents with the k highest scores for the query.
     
-    text_column -> tokenized text column from either meta_clean.csv or reviews_clean.csv
-    query -> text query 
-    k -> number of documents to return (if greater than the number of documents or -1, defaults to returning all)
+    Parameters
+    ----------
+    con : DuckDBPyConnection
+        DuckDB session
+    query : str 
+        text query 
+    k : int, optional (default = 10) 
+        number of documents to return
+    
+    Returns
+    -------
+    DataFrame
+        Contains the k results with the highest score in BM25 for the query.
     """
-    pass
+
+    tokenized_query = preprocess_for_search(query)
+    
+    # if search table is already built in preprocessing
+
+    results = con.execute(f"""
+        SELECT 
+            title, 
+            price, 
+            store, 
+            fts_main_meta_search.match_bm25(parent_asin, '{tokenized_query}') AS score
+        FROM meta_search
+        WHERE score IS NOT NULL
+        ORDER BY score DESC
+        LIMIT {k}
+    """).df()
+
+    return results
 
 
 
@@ -59,25 +68,8 @@ if __name__ == "__main__":
     print("Startup session")
     con = init_session()
     
-    basic_query = preprocess_for_search("lawnmower")
-    
-    # if search table is already built in preprocessing
+    result = query_k_highest(con,"table insertable striped summer umbrella",100)
 
-
-    print("Running query...")
-    results = con.execute(f"""
-        SELECT 
-            title, 
-            price, 
-            store, 
-            fts_main_meta_search.match_bm25(parent_asin, '{basic_query}') AS score
-        FROM meta_search
-        WHERE score IS NOT NULL
-        ORDER BY score DESC
-        LIMIT 10
-    """).df()    
-    
-    print(results)
-    results.to_csv("src/dummytest.csv")
+    result.to_csv("src/dummytest.csv")
     con.close()
     print("Connection closed successfully.")
