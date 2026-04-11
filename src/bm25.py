@@ -25,7 +25,7 @@ def preprocess_for_search(text):
     return " ".join(clean_tokens)
 
 
-def query_k_highest(con: DuckDBPyConnection , query: str,k: int = 10):
+def query_k_highest(con: DuckDBPyConnection, query: str,k: int = 10):
     """
     Returns the documents with the k highest scores for the query.
     
@@ -50,9 +50,11 @@ def query_k_highest(con: DuckDBPyConnection , query: str,k: int = 10):
 
     results = con.execute(f"""
         SELECT 
+            parent_asin,
             title, 
             price, 
-            store, 
+            store,
+            average_rating, 
             fts_main_meta_search.match_bm25(parent_asin, '{tokenized_query}') AS score
         FROM meta_search
         WHERE score IS NOT NULL
