@@ -11,7 +11,7 @@ conda env create -f environment.yml
 conda activate amazon-recommender
 ```
 
-Once this is done, download the `Patio_Lawn_and_Garden` dataset from [https://amazon-reviews-2023.github.io](https://amazon-reviews-2023.github.io) and store both `meta_Patio_Lawn_and_Garden.jsonl` and `Patio_Lawn_and_Garden.jsonl` in the `data/raw` folder. Then run all cells in `notebooks/milestone1_exploration.ipynb` to generate the following files:
+Once this is done, download the `Patio_Lawn_and_Garden` dataset from [https://amazon-reviews-2023.github.io](https://amazon-reviews-2023.github.io) and store both `meta_Patio_Lawn_and_Garden.jsonl` and `Patio_Lawn_and_Garden.jsonl` in the `data/raw` folder. Then run all cells in `notebooks/milestone1_preprocessing.ipynb` to generate the following files:
 - Sample JSON files containing the first 100 entries from each file (`data/processed/meta_Patio_Lawn_and_Garden_sample.jsonl` and `data/procssed/Patio_Lawn_and_Garden_sample.jsonl`)
 - Cleaned up CSV files containing only the required subset of the raw JSON data (`data/processed/meta_clean.csv` and `data/processed/reviews_clean.csv`)
 - Parquet files from the CSV files generated (`data/processed/meta_clean.parquet` and `data/processed/reviews_clean.parquet`)
