@@ -38,11 +38,24 @@ The general idea of this query was to return tulip seeds in a wide assortment of
 These are the five queries categorized for the semantic method to perform well in, arranged in perceived difficulty:
 
 #### 1. container to put plants in
+
+Semantic model as expected provided various options for plant containment in flower pots, garden beds, and a few other options that were all reasonable. BM25 to some extent due to the simplicity of this query also provided reasonable responses (pot hanger, air planter, terrarium) but also had a few that would not suffice such as the 7th highest option (`SmartSign 7 x 10 inch “Notice - No Open Toed Shoes Beyond This Point” OSHA Sign, 55 mil HDPE Plastic, Blue, Black and White`).
+
 #### 2. something for automatically watering a lawn
+
+The semantic model has very similar results to the LLM-4 query `best option to keep irrigation water cool while away for a long time`, but BM25 has more problems with this due to some of the extra wording possibly since while water related items do exist, the top choice for BM25 was `Carburetor for Troy-Bilt Storm 2660 31AM6BO3711 26" Craftsman 247.881733 SB410 SB450 31AS6BEE793 247.886400 247.881732 247.881980 247.884331 31AS6BEE799 Snow Thrower`.
+
 #### 3. patio chair with reclining features
+
+Nearly every result from semantics is a reclining patio chair verbatim, so BM25 would be expected to perform close to as well. In actuality it does, although it interestingly has a tendancy to prefer "Zero Gravity Chairs", probably from the body description of those placing heavy emphasis on features.
+
 #### 4. small starter planting pots for young children
+
+The semantics approach interprets this query not really in the sense for young human children but as for young children seedlings. Asides from this the results are as expected. BM25 also exhibits similar results, but this is where we start noticing that esepecially with BM25, there are cases where multiple extremely similar items are returned in the list, often from the same brand, and being even the same product with very minor differences.
+
 #### 5. protection set for power drill
 
+For this query, BM25 seems to overfixate on the last 2 words and returns mainly power drills and other products similar to this that are not considered protection sets. Semantics does better in providing protection equipment products, and from the results, it seems it considers a chainsaw to be extremely similar to a power drill.
 
 ### LLM Queries
 
@@ -98,6 +111,10 @@ As a last query that admittedly was just designed to be as confusing as possible
 
 ### BM25
 
+The main strength of this model is the fixation on specific tokens; if a user knows a specific item they are looking for then this method can locate it quite easily. This search method is also aided if the query has more description, the query `tulip seeds red orange yellow green blue purple` shows this strength very well. However with the fixation on specific tokens, it does not understand when some tokens are more important than others. There are also cases where the context of these tokens are completely not understood such as with the `potting soil 10L` query returning tractor belts. Contextual understanding of a query is also not possible with this method as seen with the `protection set for power drill` query returning actual power drills. Lastly, there are also cases where BM25 can return no results entirely if none of the tokens match the corpus.
 
 ### Semantics
 
+With semantic based methods, there is a better understanding of queries that have a specified meaning that do not explicitly state the product, such as the `container to put plants in` query. This contextual understanding can sometimes be taken too literally though, as the `tulip seeds red orange yellow green blue purple` query, which does mistakenly assume tulips grow from seeds (they grow from bulbs) led to this model assuming the user would be looking for sunflower seeds. There are signs of word connection, such as how chainsaws were heavily involved in the `protection set for power drill` query. Unlike BM25, this model can return a result under every query, but will at times not be able to return anything sensible. This is most apparent with the `Other` subset of queries, many of which LLM interpretation would be of assistance.
+
+Additionally with both models, neither of these were really able to pick up on quantitative requests such as highest rated or least expensive. This is partially due to the implementation of these methods both only considering the written text of the title and descriptions of these products, and could be assisted if they were converted into hybrid models that also took the other columns of the dataframe into consideration. Other linguistic encodings (keyboard, languages, mispellings) also proved challenging for both models, and would be more easily processed with RAG based models that could use generated SQL to narrow the data to relevant items before selection. 
