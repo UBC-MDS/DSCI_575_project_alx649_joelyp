@@ -9,10 +9,9 @@ Helper code set up in notebooks/milestone1_exploration.ipynb
 """
 
 def init_session():
-    """Initialize a duckdb session with the already setup database."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     duckdb_path = os.path.join(base_dir, "../data/processed/amazon_reviews.duckdb")
-    con = duckdb.connect(duckdb_path)
+    con = duckdb.connect(duckdb_path, read_only=True)
     return con
 
 def retrieve_test_queries():
