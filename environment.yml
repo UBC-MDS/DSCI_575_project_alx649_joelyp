@@ -40,7 +40,6 @@ dependencies:
   - pydot
   - pip
   - duckdb
-  - duckdb-python
   - fastparquet
   - pip:
     - torch-summary
