@@ -17,14 +17,13 @@ if __name__ == "__main__":
         path = os.path.join(base_dir, f"../results/test_queries/{filepath}")
         bm25_result.to_csv(path)
 
-        # Save semantic query results (uncomment once semantic is implemented)
-        """
+        # Save semantic query results
+        
         semantic_result = semantic.query_k_highest(con, row.query, 10)
         filepath = f"semantic_{row.expected_method}_{row.difficulty}.csv"
         path = os.path.join(base_dir, f"../results/test_queries/{filepath}")
-        semantic_result.to_csv()
-        """
-
+        semantic_result.to_csv(path)
+    con.close()
         
 
 

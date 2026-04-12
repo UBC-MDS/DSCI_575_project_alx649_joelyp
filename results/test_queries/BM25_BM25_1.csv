@@ -1,11 +1,11 @@
-,parent_asin,title,price,store,average_rating,score
-0,B098Q82GNZ,"Brteyes Upgrade Electric Cordless Grass Trimmer, Lightweight Handheld Garden Grass Trimmer Rechargeable Lawn Trimmer & Edger,Telescopic Handle&4pc Plastic Blades&1pc Metal Blade",31.19,Brteyes,2.9,7.418045036078372
-1,B0BVB548N6,Earthwise 19-Inch 13-Amp Corded Electric Lawn Mower,229.99,Earthwise Power Tools by ALM,4.4,7.013614489361363
-2,B0C1R6NZ78,Electric Lawn Mower 120V Redback Cordless Lawnmower with Adjustable Handle 21Inch Cutting Width Lawn Care Equipment for Landscaping and Gardening with 2AH Battery and 3.5A Charger E142C,649.0,Mowro,4.1,6.695654714570837
-3,B07JDQ29DG,[964-04117A] [MTD] Troy Bilt Lawnmower Grass Bag TB110 TB210 TB260 TB130 TB230,69.99,Troy-Bilt,4.2,6.54248559811603
-4,B0B7R9YQ6B,"970699003 Lawn Mower Grass Bag, Compatible with Ryobi Cordless Lawnmower Models 40 Volt RY40104 and 18 Volt P1102, Replace 970699001 (Without Grass Catcher Frame)",25.99,Braveboy,3.1,6.31941141751437
-5,B08XMT1ZZS,"EGO Power+ Parts 3126391001 Grass Trail Shield for LM2100, LM2102SP & LM2140SP 21"" Lawnmowers",16.89,EGO Power+ Parts,4.6,6.3047520419678875
-6,B077Y4CQ38,BW Brands Long Handle Lawnmower Deck Scraper - 18 inches Long,15.98,BW Brands,4.3,6.1872278530043845
-7,B07VCZRD52,uxcell Recoil Handle Pull start Replacement for GX160 for GX200 for GX240 for 178F for 186F Lawnmower 5 Pcs,8.99,uxcell,4.0,6.170320690018595
-8,B0C6T8FVHX,"SWIPESMITH 13-Inch 12 Amp Electric Dethatcher Scarifier with Foldable Handle, 2-in-1 Lawn Dethatcher with Two Safety Switches, 4-Position Depth Adjustment for Lawn, Garden, Yard",129.99,SWIPESMITH,4.6,6.131413279523974
-9,B07RB15H6T,ANTO Trimmer Head for Echo Echomatic Bump Head SRM 21560070 10106292 21560050,15.59,ANTO,4.2,6.105203735808915
+,parent_asin,title,price,store,average_rating,image_url,score
+0,B098Q82GNZ,"Brteyes Upgrade Electric Cordless Grass Trimmer, Lightweight Handheld Garden Grass Trimmer Rechargeable Lawn Trimmer & Edger,Telescopic Handle&4pc Plastic Blades&1pc Metal Blade",31.19,Brteyes,2.9,,7.418045036078372
+1,B0BVB548N6,Earthwise 19-Inch 13-Amp Corded Electric Lawn Mower,229.99,Earthwise Power Tools by ALM,4.4,,7.013614489361363
+2,B0C1R6NZ78,Electric Lawn Mower 120V Redback Cordless Lawnmower with Adjustable Handle 21Inch Cutting Width Lawn Care Equipment for Landscaping and Gardening with 2AH Battery and 3.5A Charger E142C,649.0,Mowro,4.1,,6.695654714570837
+3,B07JDQ29DG,[964-04117A] [MTD] Troy Bilt Lawnmower Grass Bag TB110 TB210 TB260 TB130 TB230,69.99,Troy-Bilt,4.2,,6.54248559811603
+4,B0B7R9YQ6B,"970699003 Lawn Mower Grass Bag, Compatible with Ryobi Cordless Lawnmower Models 40 Volt RY40104 and 18 Volt P1102, Replace 970699001 (Without Grass Catcher Frame)",25.99,Braveboy,3.1,,6.31941141751437
+5,B08XMT1ZZS,"EGO Power+ Parts 3126391001 Grass Trail Shield for LM2100, LM2102SP & LM2140SP 21"" Lawnmowers",16.89,EGO Power+ Parts,4.6,,6.3047520419678875
+6,B077Y4CQ38,BW Brands Long Handle Lawnmower Deck Scraper - 18 inches Long,15.98,BW Brands,4.3,,6.1872278530043845
+7,B07VCZRD52,uxcell Recoil Handle Pull start Replacement for GX160 for GX200 for GX240 for 178F for 186F Lawnmower 5 Pcs,8.99,uxcell,4.0,,6.170320690018595
+8,B0C6T8FVHX,"SWIPESMITH 13-Inch 12 Amp Electric Dethatcher Scarifier with Foldable Handle, 2-in-1 Lawn Dethatcher with Two Safety Switches, 4-Position Depth Adjustment for Lawn, Garden, Yard",129.99,SWIPESMITH,4.6,,6.131413279523974
+9,B07RB15H6T,ANTO Trimmer Head for Echo Echomatic Bump Head SRM 21560070 10106292 21560050,15.59,ANTO,4.2,,6.105203735808915
