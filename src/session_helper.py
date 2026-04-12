@@ -2,17 +2,25 @@ from duckdb import DuckDBPyConnection
 import duckdb
 from langchain_core.documents import Document
 import os
+import pandas as pd
 
 """
 Helper code set up in notebooks/milestone1_exploration.ipynb
 """
 
 def init_session():
-    """Initialize a duckdb session with the already setup database."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     duckdb_path = os.path.join(base_dir, "../data/processed/amazon_reviews.duckdb")
-    con = duckdb.connect(duckdb_path)
+    con = duckdb.connect(duckdb_path, read_only=True)
     return con
+
+def retrieve_test_queries():
+    """Return the Pandas dataframe with the test queries."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    pd_path = os.path.join(base_dir, "../data/processed/test_queries.csv")
+    df = pd.read_csv(pd_path)
+    return df
+    
 
 def create_langchain_meta_generator(con: DuckDBPyConnection):
     """
