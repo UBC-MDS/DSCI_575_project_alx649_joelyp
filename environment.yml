@@ -22,7 +22,6 @@ dependencies:
   - torchvision
   - torchaudio
   - pytorch
-  - autograd
   - wordcloud
   - seaborn
   - sentence-transformers
