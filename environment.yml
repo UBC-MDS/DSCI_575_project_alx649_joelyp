@@ -25,7 +25,6 @@ dependencies:
   - autograd
   - wordcloud
   - seaborn
-  - sentence-transformers
   - nltk
   - hmmlearn
   - wikipedia
@@ -40,7 +39,6 @@ dependencies:
   - pydot
   - pip
   - duckdb
-  - duckdb-python
   - fastparquet
   - pip:
     - torch-summary
@@ -48,7 +46,7 @@ dependencies:
     - kaleido
     - pyppeteer
     - mglearn
-    - transformers
+    - transformers==4.44.2
     - langchain
     - langchain-core
     - langchain-community
@@ -65,3 +63,7 @@ dependencies:
     - pypdf
     - streamlit>=1.56.0
     - rank_bm25>=0.2.2
+    - sentence-transformers
+    - huggingface-hub==0.36.2
+    - sentence-transformers==3.0.1
+    - tokenizers==0.19.1
