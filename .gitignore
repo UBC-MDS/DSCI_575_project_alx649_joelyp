@@ -1,4 +1,5 @@
 data/*
+results/test_queries/*
 .env
 
 *.ipynb_checkpoints*
