@@ -1,92 +1,89 @@
-from session_helper import *
-from itertools import islice
-from sentence_transformers import SentenceTransformer
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+import faiss
+import numpy as np
 import os
+import pickle
+from itertools import islice
+from tqdm import tqdm
+from sentence_transformers import SentenceTransformer
+from session_helper import *
+import pandas as pd
 
-# Path to save/load the FAISS index
 base_dir = os.path.dirname(os.path.abspath(__file__))
-FAISS_INDEX_PATH = os.path.join(base_dir, "../data/processed/faiss_index")
 
-# Model recommended by the course — small, fast, good quality
 MODEL_NAME = "all-MiniLM-L6-v2"
-
+FAISS_INDEX_PATH = os.path.join(base_dir, "../data/processed/faiss_index.bin")
+FAISS_META_PATH  = os.path.join(base_dir, "../data/processed/faiss_meta.pkl")
+BATCH_SIZE = 1000
+N_DOCS = 20_000
 
 def build_faiss_index(con):
-    """
-    Builds a FAISS index from the meta documents and saves it to disk.
-    Only needs to be run once — subsequent searches load from disk.
+    model = SentenceTransformer(MODEL_NAME)
 
-    Parameters
-    ----------
-    con : DuckDBPyConnection
-        Active DuckDB session
-    """
+    print("Loading documents from DuckDB...")
+    df = con.execute(f"""
+        SELECT 
+            parent_asin, title, features, description,
+            average_rating, price, store, image_url
+        FROM meta
+        LIMIT {N_DOCS}
+    """).fetchdf()
 
-    print("Loading embedding model...")
-    embeddings = HuggingFaceEmbeddings(model_name=MODEL_NAME)
+    print(f"Encoding {len(df):,} documents in batches of {BATCH_SIZE}...")
 
-    print("Streaming documents from DuckDB...")
-    # Reuse the existing generator from session_helper
-    docs = list(create_langchain_meta_generator(con))
-    # create initial subset using islice
-    # docs = list(islice(create_langchain_meta_generator(con), 50_000))  
+    # Build page_content the same way as the generator
+    texts = (
+        df['title'].fillna('') + ' ' +
+        df['features'].fillna('') + ' ' +
+        df['description'].fillna('')
+    ).tolist()
 
-    print(f"Building FAISS index from {len(docs):,} documents...")
-    vector_store = FAISS.from_documents(docs, embeddings)
+    metadata = df[['parent_asin', 'title', 'average_rating', 'price', 'store', 'image_url']].to_dict(orient='records')
 
-    vector_store.save_local(FAISS_INDEX_PATH)
-    print(f"Index saved to {FAISS_INDEX_PATH}")
+    all_embeddings = []
+    for i in tqdm(range(0, len(texts), BATCH_SIZE), desc="Encoding"):
+        batch = texts[i:i+BATCH_SIZE]
+        embeddings = model.encode(batch, show_progress_bar=False)
+        all_embeddings.append(embeddings)
+
+    all_embeddings = np.vstack(all_embeddings).astype('float32')
+    dimension = all_embeddings.shape[1]
+    index = faiss.IndexFlatL2(dimension)
+    index.add(all_embeddings)
+
+    faiss.write_index(index, FAISS_INDEX_PATH)
+    with open(FAISS_META_PATH, 'wb') as f:
+        pickle.dump(metadata, f)
+
+    print(f"Saved index ({index.ntotal:,} vectors) and metadata.")
+
 
 def query_k_highest(con, query, k=10):
-    """
-    Search the FAISS index using semantic similarity.
+    model = SentenceTransformer(MODEL_NAME)
+    
+    # Load index and metadata
+    index = faiss.read_index(FAISS_INDEX_PATH)
+    with open(FAISS_META_PATH, 'rb') as f:
+        metadata = pickle.load(f)
 
-    Encodes the query using the same model used to build the index,
-    then finds the k most similar documents by vector distance.
+    # Encode query and search
+    query_vec = model.encode([query]).astype('float32')
+    distances, indices = index.search(query_vec, k)
 
-    Parameters
-    ----------
-    con   : DuckDBPyConnection — not used directly but kept to match bm25 interface
-    query : the search string entered by the user
-    k     : number of top results to return (default 10)
-
-    Returns
-    -------
-    DataFrame with columns: parent_asin, title, average_rating, price, store, image_url, score
-    """
-
-    # Load the embedding model
-    embeddings = HuggingFaceEmbeddings(model_name=MODEL_NAME)
-
-    # Load the saved FAISS index from disk
-    vector_store = FAISS.load_local(
-        FAISS_INDEX_PATH,
-        embeddings,
-        allow_dangerous_deserialization=True  # required by LangChain for local files
-    )
-
-    # Search — returns list of (Document, score) tuples
-    results = vector_store.similarity_search_with_score(query, k=k)
-
-    # Flatten into a list of dicts matching the bm25 output format
     rows = []
-    for doc, score in results:
-        row = doc.metadata.copy()
-        row['score'] = score
+    for dist, idx in zip(distances[0], indices[0]):
+        row = metadata[idx].copy()
+        row['score'] = float(dist)
         rows.append(row)
 
     return pd.DataFrame(rows)
 
+
 if __name__ == "__main__":
     con = init_session()
 
-    # Build the index if it doesn't exist yet
     if not os.path.exists(FAISS_INDEX_PATH):
         build_faiss_index(con)
 
     result = query_k_highest(con, "garden hose 50ft", k=10)
     print(result)
-
     con.close()
