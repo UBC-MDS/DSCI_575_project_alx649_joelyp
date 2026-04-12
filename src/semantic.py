@@ -1,4 +1,5 @@
 from session_helper import *
+from itertools import islice
 from sentence_transformers import SentenceTransformer
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -28,8 +29,9 @@ def build_faiss_index(con):
 
     print("Streaming documents from DuckDB...")
     # Reuse the existing generator from session_helper
-    # docs = list(create_langchain_meta_generator(con))
-    docs = list(create_langchain_meta_generator(con))[:50_000]  # create initial subset
+    docs = list(create_langchain_meta_generator(con))
+    # create initial subset using islice
+    # docs = list(islice(create_langchain_meta_generator(con), 50_000))  
 
     print(f"Building FAISS index from {len(docs):,} documents...")
     vector_store = FAISS.from_documents(docs, embeddings)
