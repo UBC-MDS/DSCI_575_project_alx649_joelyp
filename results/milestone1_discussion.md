@@ -37,26 +37,27 @@ The general idea of this query was to return tulip seeds in a wide assortment of
 
 These are the five queries categorized for the semantic method to perform well in, arranged in perceived difficulty:
 
-```
-1. container to put plants in
-2. something for automatically watering a lawn
-3. patio chair with reclining features
-4. small starter planting pots for young children
-5. protection set for power drill
-```
+#### 1. container to put plants in
+#### 2. something for automatically watering a lawn
+#### 3. patio chair with reclining features
+#### 4. small starter planting pots for young children
+#### 5. protection set for power drill
 
 
 ### LLM Queries
 
 These are the five queries categorized for the LLM method to perform well in, arranged in perceived difficulty. For the purpose of this report, these queries were designed with the intent of the BM25 and semantics methods struggling to return meaningful results here.
 
-```
-1. highest rated patio decking options
-2. least expensive rake for autumn leaves
-3. good souvinier plants for a trip returning from Peru
-4. best option to keep irrigation water cool while away for a long time
-5. the most impressive grill for an annual sasuage grilling competition
-```
+
+#### 1. highest rated patio decking options
+
+#### 2. least expensive rake for autumn leaves
+
+#### 3. good souvinier plants for a trip returning from Peru
+
+#### 4. best option to keep irrigation water cool while away for a long time
+
+#### 5. the most impressive grill for an annual sasuage grilling competition
 
 
 ### Other Queries
@@ -64,17 +65,27 @@ These are the five queries categorized for the LLM method to perform well in, ar
 These last five queries are fun challenges that could reasonably occur, and none of the methods (including LLM) may be able to provide results for these queries fully. See the [README section](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/blob/main/README.md#descriptions-of-the-other-section) for more description about these queries.
 <!-- This link will be functional once dev is merged to main for milestone 1. Also this comment won't show up in the render. -->
 
-```
-1. read plants for planting by small lake
-2. 40 in 3D Simulation Bread Shape Pillow Soft Lumbar Baguette Back Cushion Funny Food Plush Stuffed Toy
-3. ydcpyf m.y.p un.qcxn. iape.b dro.
-4. richardella ecuformis
-5. den mest kompakta och lättbärbara isbehållaren för att förvara kall champagne i över 12 timmar på en varm sommardag
-```
+#### 1. read plants for planting by small lake
 
+This query was meant to be "reed plants for planting by small lake", but with a typo. The initial thought with both methods was that book related items would then appear which did not entirely happen. BM25 returned an assortment of items, most commonly welcome mats, while semantics was able to capture some context by returning mainly aquatic based planting items.
 
+#### 2. 40 in 3D Simulation Bread Shape Pillow Soft Lumbar Baguette Back Cushion Funny Food Plush Stuffed Toy
 
-## Summary of Methods
+The inclusion of this query is a [specific item sourced from Amazon](https://www.amazon.ca/Wepop-Simulation-Pillow-Cushion-Stuffed/dp/B07SHP29DM/ref=sr_1_11?dib=eyJ2IjoiMSJ9.XjrWVarAG8Mn0fh7F7AMoE1I2iW_naksuPUZZQD-0NFkMMTxL-ZULjykiibf5EEAyjgXaem_hq8taspvA2W9Rf1p10-_cjMoqVdV81eeqsWIy6PzDikO1R113to0m5Eg8YzWci6qZgoqhdqFpdAi7DRlgM1YKPPV7N7usvinlh0AfybVAH5mBrq0_PIoef6BKGJkqhyyar9cKeVx41ZnLl9VqSGbjNTP5qj0X5BmTA8ZkusYRPR7thKv3IZyk3eaEkwvLtrsBkHi0bTRgocuLjJtXzQUy_mLcdi9kKFR84A.mwHccl427IV85Sn1-BsGZVcXJEBRHy_dVxtcOr5yGPQ&dib_tag=se&keywords=random%2Bstuff&qid=1775713924&sr=8-11&th=1) that is not very related to gardening or patio related items, thus making it very poor for keyword matching methods. Surprisingly this nicheness seems to have helped BM25 because it's top result was pillow based (`RSH Décor Indoor Outdoor Set of 2 U-Shape Cushions and 2 Lumbar Pillows Weather Resistant, (Large, Medlo Sonoma)`) and more importantly, all of it's top 10 results were near identical. Semantics on the other hand did mostly return pillow typed items but also had more variation with the seating options, the sixth highest result (`Simplay3 Handy Home 3-Level Heavy Duty Work/Garden Seat - 12" x 15" x 9" - Green, Made in USA`) a somewhat distant match. 
+
+#### 3. ydcpyf m.y.p un.qcxn. iape.b dro.
+
+In this query the DVORAK keyboard setting was "mistakenly" used. If the characters were typed on a QWERTY keyboard, the actual query is `thirty meter flexible garden hose`. Neither BM25 nor semantics though are equipped with keyboard layout translators, thus the results are expectedly poor. Semantics returns all sorts of items with little actual connection, while BM25 outright has no results entirely, indicating absolutely no token matches.
+
+#### 4. richardella ecuformis
+
+This query is an attempted user recalling of a specific type of grass that grows mainly in Chile, mistaken first part of the scientific name with [Richardella dulcifica](https://toptropicals.com/catalog/uid/synsepalum_dulcificum.htm?srsltid=AfmBOoohgSrUzqeCqUY27htuuQQb1HxFhANXlBKv93Yca6dgG9kuzeWe), commonly known as "Miracle Fruit". BM25 seeing there is no matches for these exact words returns no results. Semantic in a similar case to the previous test case has no clue what is the context here and returns borderline random results.
+
+#### 5. den mest kompakta och lättbärbara isbehållaren för att förvara kall champagne i över 12 timmar på en varm sommardag
+
+As a last query that admittedly was just designed to be as confusing as possible while still being able to be linked to an actual product, this is a [Google translation of](https://translate.google.com/?hl=en&sl=auto&tl=sv&text=the%20most%20compact%20and%20carryable%20ice%20tub%20to%20store%20cold%20champagne%20in%20for%20over%2012%20hours%20on%20a%20hot%20summer%20day&op=translate) "the most compact and carryable ice tub to store cold champagne in for over 12 hours on a hot summer day" to Swedish. BM25 here does return some results; a variation of `Att Southern UR1212WH 12-Inch White Grecian Urn Planter - Quantity 33` appears three times in the top 10, with all other results being random and not related to an ice box. The semantic method is also mostly random, although it does have two vaugely alcohol related products in its top 10 (`Cork Sauna Mat (450 X 300 X 12MM)` and `19cm Resin Wine Bottle and Barrel Outdoor Fountain with Led Light, Beer Self-Circulating Water Garden Courtyard Lawn Decoration，Self-Circulating Water Feature Fountain`). In either case, neither method was really able to determine this was in a different language and checked for matches on a primarily English corpus.
+
+## Summary of Method Findings
 
 ### BM25
 
