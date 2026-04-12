@@ -51,14 +51,23 @@ These are the five queries categorized for the LLM method to perform well in, ar
 
 #### 1. highest rated patio decking options
 
+Semantic model makes an interesting error here in that patio decking was somehow interpreted as various patio storage box options. BM25 on the other hand while more inconsistent did return `Diversitech Outdoor Gas Grill BBQ & Fire Pit Mat 48" x 30" - Protects Decks & Patios - 10 Year Warranty, Black` as the second highest option which does protect patio flooring, which is somewhat close to patio decking. Neither options appear to be sorted by `average_rating` and this behaviour holds for other queries that are more effective with LLM generated SQL solutions.
+
 #### 2. least expensive rake for autumn leaves
+
+Both models return various rakes fairly well but with no actual sorting on price. Adding "least expensive" to the query appears to help the semantic model somewhat as it does return some more inexpensive options.
 
 #### 3. good souvinier plants for a trip returning from Peru
 
+This query is fairly rigid which is how BM25 and semantic are able to return various plants that are at least somewhat related to Peru. Much of the challenge in these models is determing what would be considered a "souvenir plant"; semantic model appears to associate a gift box with such explaining how `Fat Plants San Diego Cactus Plants in Gift Box | Rooted in 4 inch Planter Pots with Soil | Living Indoor or Outdoor Plants | Gift Tin Pot Option (Peruvian Old Man)` was the top option, whereas BM25 cannot make this connection.
+
 #### 4. best option to keep irrigation water cool while away for a long time
+
+The thought was that with how open ended this query was, both models would struggle to provide a consistent set of responses. In actuality, both models appear to provide a set of reasonable responses for the query consisting of mist systems, faucet timers, smart wifi sprinklers, and irrigation kits. There are some outliers here and asides from the rankings no other explanation is given for what is the best option, but a user would likely be satisfied with these queries.
 
 #### 5. the most impressive grill for an annual sasuage grilling competition
 
+In both models, a few of the top 10 results were grills but there was also many other things that were only grill-related. Further more, there is very little actual reasoning prevalent as to what is considered an "impressive" grill for sausages, as no discernable patterns in average_rating or price can be found.
 
 ### Other Queries
 
