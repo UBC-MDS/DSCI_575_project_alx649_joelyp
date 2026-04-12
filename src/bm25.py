@@ -71,7 +71,7 @@ if __name__ == "__main__":
     print("Startup session")
     con = init_session()
     
-    result = query_k_highest(con,"table insertable striped summer umbrella",100)
+    result = query_k_highest(con,"potting soil 10L",10)
 
     result.to_csv("src/dummytest.csv")
     con.close()

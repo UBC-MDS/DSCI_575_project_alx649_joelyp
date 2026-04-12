@@ -8,14 +8,30 @@ All results from the test queries stored in `data/processed/test_queries.csv` ar
 
 These are the five queries categorized for the BM25 method to perform well in, arranged in perceived difficulty:
 
-```
-1. grass electric lawnmower
-2. large metal rectangular garden bed
-3. potting soil 10L
-4. table insertable striped summer umbrella
-5. tulip seeds red orange yellow green blue purple
-```
 
+#### 1. grass electric lawnmower
+
+Both BM25 and semantic methods returned various entries related to lawnmowers; most of them being lawnmowers. 9 of the 10 entries in the semantic method were explicitly lawnmowers, most of which being electric. Interestingly, the closest match by BM25 found was `Brteyes Upgrade Electric Cordless Grass Trimmer, Lightweight Handheld Garden Grass Trimmer Rechargeable Lawn Trimmer & Edger,Telescopic Handle&4pc Plastic Blades&1pc Metal Blade`, which does not explicitly mention a "lawnmower" of any sort even if it very much could be used like one, indicating the BM25 method may not be able to determine which tokens of the query are more important to match. Also notable is that there was no overlap in the top 10 results for these methods.
+
+#### 2. large metal rectangular garden bed
+
+The idea of this query was to return some sort of planter, with the adjectives meant to help BM25. The first result being `SINCETHEN Galvanized Raised Garden Bed for Vegetables Herbs Plants, Oval Large Metal Planter Box for Outdoor Use, Raised Garden Bed Galvanized Steel 4X2X1 FT, Silver` indicates these descriptors were accounted for very well. The semantic method's top result `Outdoor 8x4Ft Metal Raised Garden Bed Patio Large Frame Planters Box for Vegetables/Flower/` is also a very close match to expectation.
+
+#### 3. potting soil 10L
+
+10L was specifically included to see if the BM25 method would be able to return bags of soil of exactly this capacity. What proceded to happen was that the top result was `Lawn Mower Tractor Deck Belt 5/8" x 143 1/2" Replacement for Husqvarna 574845603 GT 52XLS, GT 48XLSI, GTH 2752TF, GTH 24V52LS, GTH 26V52LS, GTH 3052TDF, GTH 3052TF GTH 52XLS TS 352 Series`, which is not close to what is expected. This query was reran manually in `bm25.py` and it produced the same top 10 results, so it's very strange this query just fails like this. The semantic method on the other hand was able to return a variety of soil products, even if none of them were exactly 10L bags.
+
+#### 4. table insertable striped summer umbrella
+
+For this query the intent was a patio type of umbrella visually similar to this:
+
+![Depiction of the patio umbrella.](img/umbrella.jpg)
+
+The BM25 method was mostly successful in that its results were either an umbrella similar to this depiction, or related accesories involving a table that such an umbrella would be inserted into as noted by the top result `Eforcurtain Stripes Round Zippered Outdoor Tablecloth with Umbrella Hole, 60 Inch Round Water Proof Fabric Patio Table Cover for Picnic Black and White`. Semantic method has a simlar set of results with `Outus 2 Pieces Patio Table Umbrella Hole Ring Umbrella Cone Wedge Plug Umbrella Stabilizer Sleeve for 2 to 2.5 Inch Patio Table Hole and 1.5 Inch Pool Umbrella Adapter` being the top result.
+
+#### 5. tulip seeds red orange yellow green blue purple
+
+The general idea of this query was to return tulip seeds in a wide assortment of colours; the rainbow colours in this sense were supposed to throw both models off somewhat. This is a case where BM25 clearly outperforms semantics. BM25's top result is `Blumex Parrot Tulip 10 Bulbs - Exotic & New - 12/+ cm Bulbs`, which is a multicoloured tulip varient that is surprisingly understandable to the query's intent, while semantic's top result is `100 Orange EVENING COLORS SUNFLOWER Helianthus Annuus Flower Seeds`, which made an error in taking the seeds implication more literally.
 
 ### Semantics Queries
 
