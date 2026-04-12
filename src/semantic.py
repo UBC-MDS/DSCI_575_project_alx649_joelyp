@@ -16,6 +16,14 @@ FAISS_META_PATH  = os.path.join(base_dir, "../data/processed/faiss_meta.pkl")
 BATCH_SIZE = 1000
 N_DOCS = 20_000
 
+def load_model_and_index():
+    """Load model, FAISS index and metadata once for reuse across queries."""
+    model = SentenceTransformer(MODEL_NAME)
+    index = faiss.read_index(FAISS_INDEX_PATH)
+    with open(FAISS_META_PATH, 'rb') as f:
+        metadata = pickle.load(f)
+    return model, index, metadata
+
 def build_faiss_index(con):
     model = SentenceTransformer(MODEL_NAME)
 
@@ -57,15 +65,7 @@ def build_faiss_index(con):
     print(f"Saved index ({index.ntotal:,} vectors) and metadata.")
 
 
-def query_k_highest(con, query, k=10):
-    model = SentenceTransformer(MODEL_NAME)
-    
-    # Load index and metadata
-    index = faiss.read_index(FAISS_INDEX_PATH)
-    with open(FAISS_META_PATH, 'rb') as f:
-        metadata = pickle.load(f)
-
-    # Encode query and search
+def query_k_highest(model, index, metadata, query, k=10):
     query_vec = model.encode([query]).astype('float32')
     distances, indices = index.search(query_vec, k)
 
@@ -76,7 +76,6 @@ def query_k_highest(con, query, k=10):
         rows.append(row)
 
     return pd.DataFrame(rows)
-
 
 if __name__ == "__main__":
     con = init_session()
