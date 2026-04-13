@@ -19,6 +19,18 @@ Once this is done, download the `Patio_Lawn_and_Garden` dataset from [https://am
 
 Note that the full generation of these files will take around 10 minutes to complete, which may be faster depending on computer RAM and processing power. You should also ensure at least 10 GB of additional hard disk memory to store the generated files.
 
+## Source Files
+
+- `src/bm25.py` — BM25 keyword retriever using DuckDB FTS index
+- `src/semantic.py` — Semantic retriever using FAISS and sentence-transformers
+- `src/session_helper.py` — DuckDB connection and LangChain document utilities
+- `src/retrieval_metrics.py` — Runs all test queries through both retrievers and saves results to `results/test_queries/`
+
+## Building the Semantic Index
+
+After running `notebooks/milestone1_preprocessing.ipynb`, build the FAISS index by running:
+`python src/semantic.py`
+
 Use the following command to run the app locally (note this may take a while to load depending on computer):
 
 ```
