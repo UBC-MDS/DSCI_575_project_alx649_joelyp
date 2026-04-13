@@ -1,0 +1,22 @@
+query,expected_method,difficulty
+grass electric lawnmower,BM25,1
+large metal rectangular garden bed,BM25,2
+potting soil 10L,BM25,3
+table insertable striped summer umbrella,BM25,4
+tulip seeds red orange yellow green blue purple,BM25,5
+container to put plants in,semantic,1
+something for automatically watering a lawn,semantic,2
+patio chair with reclining features,semantic,3
+small starter planting pots for young children,semantic,4
+protection set for power drill,semantic,5
+highest rated patio decking options,LLM,1
+least expensive rake for autumn leaves,LLM,2
+good souvinier plants for a trip returning from Peru,LLM,3
+best option to keep irrigation water cool while away for a long time,LLM,4
+the most impressive grill for an annual sasuage grilling competition,LLM,5
+read plants for planting by small lake,Other,1
+40 in 3D Simulation Bread Shape Pillow Soft Lumbar Baguette Back Cushion Funny Food Plush Stuffed Toy,Other,2
+ydcpyf m.y.p un.qcxn. iape.b dro.,Other,3
+richardella ecuformis,Other,4
+den mest kompakta och lättbärbara isbehållaren för att förvara kall champagne i över 12 timmar på en varm sommardag,Other,5
+
