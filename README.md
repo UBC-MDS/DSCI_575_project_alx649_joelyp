@@ -29,7 +29,9 @@ Note that the full generation of these files will take around 10 minutes to comp
 ## Building the Semantic Index
 
 After running `notebooks/milestone1_preprocessing.ipynb`, build the FAISS index by running:
-`python src/semantic.py`
+```
+python src/semantic.py
+```
 
 Use the following command to run the app locally (note this may take a while to load depending on computer):
 
