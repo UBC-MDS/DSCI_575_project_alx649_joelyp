@@ -1,8 +1,12 @@
 # DSCI_575_project_alx649_joelyp
-LLM powered product recommender for Amazon.
+
+This project is a product recommendation tool utilizing the [2023 Amazon Review Dataset](https://amazon-reviews-2023.github.io) for patio, lawn, and garden items. Currently, there are two retriever methods implemented in this project: a BM25 keyword retriever using DuckDB FTS index and a semantic retriever using FAISS and sentence-transformers. For milestone 2, a LLM powered retrieving method will be implemented as well as an app for live interaction with the search system which is currently in progress.
 
 
 ## Setup
+
+
+### Environment Setup
 
 Navigate to the repo folder after cloning and run the following:
 
@@ -11,7 +15,10 @@ conda env create -f environment.yml
 conda activate amazon-recommender
 ```
 
+### Data Preprocessing
+
 Once this is done, download the `Patio_Lawn_and_Garden` dataset from [https://amazon-reviews-2023.github.io](https://amazon-reviews-2023.github.io) and store both `meta_Patio_Lawn_and_Garden.jsonl` and `Patio_Lawn_and_Garden.jsonl` in the `data/raw` folder. Then run all cells in `notebooks/milestone1_preprocessing.ipynb` to generate the following files:
+
 - Sample JSON files containing the first 100 entries from each file (`data/processed/meta_Patio_Lawn_and_Garden_sample.jsonl` and `data/procssed/Patio_Lawn_and_Garden_sample.jsonl`)
 - Cleaned up CSV files containing only the required subset of the raw JSON data (`data/processed/meta_clean.csv` and `data/processed/reviews_clean.csv`)
 - Parquet files from the CSV files generated (`data/processed/meta_clean.parquet` and `data/processed/reviews_clean.parquet`)
@@ -19,25 +26,30 @@ Once this is done, download the `Patio_Lawn_and_Garden` dataset from [https://am
 
 Note that the full generation of these files will take around 10 minutes to complete, which may be faster depending on computer RAM and processing power. You should also ensure at least 10 GB of additional hard disk memory to store the generated files.
 
-## Source Files
-
-- `src/bm25.py` — BM25 keyword retriever using DuckDB FTS index
-- `src/semantic.py` — Semantic retriever using FAISS and sentence-transformers
-- `src/session_helper.py` — DuckDB connection and LangChain document utilities
-- `src/retrieval_metrics.py` — Runs all test queries through both retrievers and saves results to `results/test_queries/`
-
-## Building the Semantic Index
+### Building the Semantic Index
 
 After running `notebooks/milestone1_preprocessing.ipynb`, build the FAISS index by running:
 ```
 python src/semantic.py
 ```
 
+### Running the App
+
 Use the following command to run the app locally (note this may take a while to load depending on computer):
 
 ```
 streamlit run app/app.py
 ```
+
+Currently, the dev branch version of the app is deployed at [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app). The main branch version will be linked in the Github "About" section and added to this README in Milestone 2 once implemented.
+
+
+## Source Files
+
+- `src/bm25.py` — BM25 keyword retriever using DuckDB FTS index
+- `src/semantic.py` — Semantic retriever using FAISS and sentence-transformers
+- `src/session_helper.py` — DuckDB connection and LangChain document utilities
+- `src/retrieval_metrics.py` — Runs all test queries through both retrievers and saves results to `results/test_queries/`
 
 
 ## Test Query Dataset
@@ -61,3 +73,29 @@ The queries labelled as `Other` are meant to be somewhat extraneous but possible
 | ydcpyf m.y.p un.qcxn. iape.b dro. | Meant to be "thirty meter flexible garden hose", but typed on a DVORAK keyboard instead of an intended QWERTY keyboard. | LLM |
 | richardella ecuformis | Attempted user recalling of a specific type of grass that grows mainly in Chile, mistaken first part of the scientific name with [Richardella dulcifica](https://toptropicals.com/catalog/uid/synsepalum_dulcificum.htm?srsltid=AfmBOoohgSrUzqeCqUY27htuuQQb1HxFhANXlBKv93Yca6dgG9kuzeWe), commonly known as "Miracle Fruit" | semantic | 
 | den mest kompakta och lättbärbara isbehållaren för att förvara kall champagne i över 12 timmar på en varm sommardag  | [Google translation of](https://translate.google.com/?hl=en&sl=auto&tl=sv&text=the%20most%20compact%20and%20carryable%20ice%20tub%20to%20store%20cold%20champagne%20in%20for%20over%2012%20hours%20on%20a%20hot%20summer%20day&op=translate) "the most compact and carryable ice tub to store cold champagne in for over 12 hours on a hot summer day" to Swedish  | LLM |
+
+## Results
+
+Full discussion of the results from running the BM25 and semantic searches on `data/processed/test_queries.csv` can be found in `results/milestone1_discussion.md`.
+
+
+## References
+
+This project utilizes the [Amazon Reviews 2023 Dataset](https://amazon-reviews-2023.github.io) collected by [McAuley Lab](https://cseweb.ucsd.edu/~jmcauley/).
+
+## Contributors
+
+### Alexander Wen
+
+- **Affiliation**: University of British Columbia
+- **GitHub**: [@alxwen711](https://github.com/alxwen711)
+
+
+### Joel Nicholas Peterson
+
+- **Affiliation**: University of British Columbia
+- **GitHub**: [@j031nich0145](https://github.com/j031nich0145)
+
+
+
+
