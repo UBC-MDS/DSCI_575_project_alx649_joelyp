@@ -4,6 +4,32 @@
 
 All results from the test queries stored in `data/processed/test_queries.csv` are stored in the `results/test_queries` folder. The CSV files are named in the format `{utilized method}_{expected_method}_{difficulty}`. For example, if you want to view the matching items the BM25 method returned for the query `patio chair with reclining features` (`expected_method = semantic, difficulty = 3`), the CSV file containing these results is `results/test_queries/BM24_semantic_3.csv`. 
 
+## Comparison Table
+
+| Query | BM25 Results (brief) | Semantic Results (brief) | Better Method | Notes |
+|-------|---------------------|--------------------------|---------------|-------|
+| grass electric lawnmower | Lawnmowers + grass trimmers | Clean lawnmower results | Semantic | BM25 matches "grass" too broadly |
+| large metal rectangular garden bed | Galvanized raised garden beds | Metal raised garden beds | Tie | Both methods perform well |
+| potting soil 10L | Tractor belt as top result | Variety of soil products | Semantic | BM25 completely fails on this query |
+| table insertable striped summer umbrella | Patio umbrellas + tablecloths | Patio umbrella accessories | Tie | Both return relevant results |
+| tulip seeds red orange yellow green blue purple | Multicoloured tulip bulbs | Sunflower seeds | BM25 | Semantic confuses bulbs with seeds |
+| container to put plants in | Mixed — mostly relevant | Flower pots and planters | Semantic | BM25 returns unrelated signs |
+| something for automatically watering a lawn | Carburetor as top result | Irrigation/sprinkler systems | Semantic | BM25 fails on natural language |
+| patio chair with reclining features | Zero gravity chairs | Reclining patio chairs | Tie | Both perform well |
+| small starter planting pots for young children | Starter pots — duplicates | Seedling pots | Tie | Both misinterpret "young children" |
+| protection set for power drill | Power drills | Chainsaw gear | Neither | Both miss the intent |
+| highest rated patio decking options | BBQ mat, pool cover | Patio storage boxes | Neither | Neither understands "decking" |
+| least expensive rake for autumn leaves | Various rakes, unsorted | Inexpensive rakes | Semantic | Neither sorts by price |
+| good souvenir plants for a trip returning from Peru | Metal detectors, Monstera Peru | Gift cactus, Peruvian lily | Semantic | BM25 latches onto "Peru" token |
+| best option to keep irrigation water cool while away | Mist systems, timers | Irrigation kits, sprinklers | Tie | Both surprisingly reasonable |
+| most impressive grill for sausage competition | Grills + accessories | Grills + accessories | Tie | Neither understands "impressive" |
+| read plants for planting by small lake | Welcome mats | Aquatic planting items | Semantic | Semantic handles typo better |
+| 40 in 3D Simulation Bread Shape Pillow... | Outdoor pillows — consistent | Pillows + seating | BM25 | BM25 surprisingly consistent |
+| ydcpyf m.y.p un.qcxn. iape.b dro. | No results | Random items | Neither | DVORAK keyboard input — both fail |
+| richardella ecuformis | No results | Random items | Neither | Obscure scientific name — both fail |
+| Swedish ice tub query | Random + urn planter | Random + alcohol items | Neither | Non-English query — both fail |
+
+
 ### BM25 Queries
 
 These are the five queries categorized for the BM25 method to perform well in, arranged in perceived difficulty:
@@ -118,3 +144,24 @@ The main strength of this model is the fixation on specific tokens; if a user kn
 With semantic based methods, there is a better understanding of queries that have a specified meaning that do not explicitly state the product, such as the `container to put plants in` query. This contextual understanding can sometimes be taken too literally though, as the `tulip seeds red orange yellow green blue purple` query, which does mistakenly assume tulips grow from seeds (they grow from bulbs) led to this model assuming the user would be looking for sunflower seeds. There are signs of word connection, such as how chainsaws were heavily involved in the `protection set for power drill` query. Unlike BM25, this model can return a result under every query, but will at times not be able to return anything sensible. This is most apparent with the `Other` subset of queries, many of which LLM interpretation would be of assistance.
 
 Additionally with both models, neither of these were really able to pick up on quantitative requests such as highest rated or least expensive. This is partially due to the implementation of these methods both only considering the written text of the title and descriptions of these products, and could be assisted if they were converted into hybrid models that also took the other columns of the dataframe into consideration. Other linguistic encodings (keyboard, languages, mispellings) also proved challenging for both models, and would be more easily processed with RAG based models that could use generated SQL to narrow the data to relevant items before selection. 
+
+## Key Takeaways
+
+- **BM25 excels at exact keyword matching** but is brittle outside this comfort 
+  zone — a single unexpected token can completely derail results
+- **Semantic search handles natural language better** but is limited by the 
+  20,000 product subset indexed; many relevant products likely exist in the 
+  remaining 830,000 that were not indexed
+- **Neither method handles quantitative requests** — queries asking for 
+  "highest rated" or "least expensive" require SQL-style filtering that pure 
+  text retrieval cannot provide
+- **Complex intent queries** (LLM category) exposed the ceiling of both methods 
+  — understanding "souvenir", "impressive", or "competition" requires reasoning 
+  beyond keyword or vector similarity
+- **Edge cases are revealing** — DVORAK input, foreign languages, and scientific 
+  names all fail completely, highlighting that real-world search needs robust 
+  query preprocessing and language detection upstream
+- **Hybrid search is the logical next step** — BM25 and semantic scores are 
+  complementary; combining them would offset each method's individual weaknesses
+- **RAG + LLM reranking** is expected to significantly improve results for the 
+  LLM query category in Milestone 2 by enabling reasoning over retrieved candidates
