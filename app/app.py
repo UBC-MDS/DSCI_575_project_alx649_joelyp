@@ -11,9 +11,9 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # ── Path setup ─────────────────────────────────────────────────────────────────
-# Add src/ to the Ppthon path 
+# Add src/ to the Python path 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
-from session_helper import init_session, load_model_and_index
+from session_helper import init_session, load_model_and_index, construct_groq_instance
 from rag_pipeline import ask               # unified RAG entry point used in Tab 2
 import bm25                               # BM25 keyword retriever
 import semantic                          # FAISS semantic retriever
@@ -231,13 +231,19 @@ with tab_rag:
                 options=["Hybrid", "Semantic", "BM25"],
                 horizontal=True
             )
+        rag_key = st.text_input(
+            "Add Groq API Key here (tries to use .env key if not entered and running locally)",
+            placeholder="gsk_0123456789XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        )
         rag_btn = st.form_submit_button("🤖 Ask", use_container_width=True)
 
     if rag_btn and rag_query.strip():
         with st.spinner("Retrieving and generating answer..."):
             # ask() runs the full RAG chain: retrieve => build context => prompt => LLM
             # Returns a dict with 'answer' (str) and 'docs' (list of metadata dicts)
-            result = ask(rag_query, mode=rag_method.lower())
+            llm_instance = construct_groq_instance(rag_key)
+
+            result = ask(rag_query, llm = llm_instance, mode=rag_method.lower())
             answer = result["answer"]
             docs   = result["docs"]
 
