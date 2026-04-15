@@ -7,21 +7,19 @@ import warnings
 from datetime import datetime
 
 # Suppress FutureWarnings from transformers and disable tokenizer parallelism
-# warning that appears when running in a subprocess (Streamlit runs in one)
 warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # ── Path setup ─────────────────────────────────────────────────────────────────
-# Add src/ to the Python path so we can import our retrieval modules directly
+# Add src/ to the Ppthon path 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 from session_helper import init_session, load_model_and_index
-from rag_pipeline import ask  # unified RAG entry point used in Tab 2
-import bm25                   # BM25 keyword retriever
-import semantic               # FAISS semantic retriever
+from rag_pipeline import ask               # unified RAG entry point used in Tab 2
+import bm25                               # BM25 keyword retriever
+import semantic                          # FAISS semantic retriever
 
 # ── Page config ────────────────────────────────────────────────────────────────
-# Must be the first Streamlit call in the script
-# layout="wide" uses the full browser width instead of the narrow centered default
+# layout="wide" uses the full browser width 
 st.set_page_config(
     page_title="Amazon PLG Search",
     page_icon="🌿",
@@ -30,25 +28,18 @@ st.set_page_config(
 
 # ── Load resources ─────────────────────────────────────────────────────────────
 # @st.cache_resource ensures these heavy objects are only loaded once per session
-# and shared across reruns — without this, the model and index would reload on
-# every user interaction which would be very slow
-
 @st.cache_resource
-def get_connection():
-    # Opens a read-only DuckDB connection to the processed database
+def get_connection():       # opens read-only DuckDB connection to processed database
     return init_session()
 
 @st.cache_resource
-def get_semantic_resources():
-    # Loads the SentenceTransformer model, FAISS index, and product metadata
-    # from disk — these were built in src/semantic.py during preprocessing
+def get_semantic_resources():      # loads SentenceTransformer, FAISS, product metadata
     return load_model_and_index()
 
 con = get_connection()
 sem_model, sem_index, sem_metadata = get_semantic_resources()
 
 # ── Feedback storage ───────────────────────────────────────────────────────────
-# Path to the CSV file where thumbs up/down votes are appended
 FEEDBACK_PATH = os.path.join(os.path.dirname(__file__), "../data/processed/feedback.csv")
 
 def save_feedback(query, method, asin, title, vote):
@@ -69,8 +60,7 @@ def save_feedback(query, method, asin, title, vote):
         writer = csv.DictWriter(
             f, fieldnames=['timestamp', 'query', 'method', 'asin', 'title', 'vote']
         )
-        # Only write the header row if the file is being created for the first time
-        if not file_exists:
+        if not file_exists:      # only write header row if file being created for first time
             writer.writeheader()
         writer.writerow({
             'timestamp': datetime.now().isoformat(),
@@ -127,13 +117,13 @@ def render_result(doc, idx, query, method, show_score=True):
     """
     title  = doc.get('title', 'Unknown Product')
     asin   = doc.get('parent_asin', 'N/A')
-    # average_rating is from metadata, rating is from reviews — check both
+    # average_rating is from metadata => rating is from reviews — check both
     rating = doc.get('average_rating') or doc.get('rating')
     price  = doc.get('price')
     store  = doc.get('store', '')
     score  = doc.get('score')
 
-    # st.container(border=True) draws a native Streamlit bordered card
+    # st.container(border=True) => draws native Streamlit bordered card
     with st.container(border=True):
         st.markdown(f"**{idx + 1}. {title}**")
 
@@ -145,8 +135,7 @@ def render_result(doc, idx, query, method, show_score=True):
         if show_score and score:
             cols[3].caption(f"Score: {score:.3f}")
 
-        # Feedback buttons — keys must be unique across all rendered results
-        # so we include both method and idx in the key
+        # Feedback buttons — include both method and idx in the key => unique
         fb1, fb2, _ = st.columns([1, 1, 8])
         with fb1:
             if st.button("👍", key=f"{method}_up_{idx}"):
@@ -164,20 +153,10 @@ st.caption("Search 367,000+ products using keyword, semantic, hybrid, or AI-powe
 st.divider()
 
 # ── Tabs ───────────────────────────────────────────────────────────────────────
-# Two tabs keep Search Only and RAG Mode visually separated
-# Streamlit reruns the full script on every interaction but only renders
-# the active tab's content to the user
-tab_search, tab_rag = st.tabs(["🔍 Search Only", "🤖 RAG Mode"])
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 1 — Search Only
-# Returns top 25 results from BM25, Semantic, or Hybrid retrieval.
-# No LLM involved — raw retrieval scores only.
-# ══════════════════════════════════════════════════════════════════════════════
+tab_search, tab_rag = st.tabs(["🔍 Search Only", "RAG Mode"])
 with tab_search:
 
     # st.form groups the text input, radio, and submit button together
-    # so that pressing Enter in the text box submits the form (same as clicking Search)
     with st.form(key="search_form"):
         s_col1, s_col2 = st.columns([3, 1])
         with s_col1:
@@ -208,8 +187,7 @@ with tab_search:
 
             else:  # Hybrid
                 # Combine both retrievers and deduplicate by parent_asin
-                # Semantic results take priority in ordering since they tend to
-                # capture intent better; BM25 fills in any gaps
+                # Semantic results take priority => BM25 fills in any gaps
                 bm25_r = bm25.query_k_highest(con, search_query, k=25).to_dict(orient='records')
                 sem_r  = semantic.query_k_highest(con, search_query, k=25)
                 sem_r  = sem_r.to_dict(orient='records') if isinstance(sem_r, pd.DataFrame) else sem_r
@@ -237,10 +215,6 @@ with tab_search:
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — RAG Mode
-# Retrieves top 5 products then passes them as context to the LLM.
-# Returns a natural language answer grounded in the retrieved product data.
-# k is kept at 5 (set in rag_pipeline.py) to stay within LLM context limits.
-# ══════════════════════════════════════════════════════════════════════════════
 with tab_rag:
     st.caption("AI-generated answers grounded in real product data.")
 
@@ -261,7 +235,7 @@ with tab_rag:
 
     if rag_btn and rag_query.strip():
         with st.spinner("Retrieving and generating answer..."):
-            # ask() runs the full RAG chain: retrieve → build context → prompt → LLM
+            # ask() runs the full RAG chain: retrieve => build context => prompt => LLM
             # Returns a dict with 'answer' (str) and 'docs' (list of metadata dicts)
             result = ask(rag_query, mode=rag_method.lower())
             answer = result["answer"]
@@ -275,8 +249,7 @@ with tab_rag:
         st.divider()
 
         for i, doc in enumerate(docs):
-            # show_score=False in RAG mode — the distance score is less meaningful
-            # when results are being used as LLM context rather than ranked directly
+            # show_score=False in RAG mode 
             render_result(doc, i, rag_query, f"RAG-{rag_method}", show_score=False)
 
     elif rag_btn:
