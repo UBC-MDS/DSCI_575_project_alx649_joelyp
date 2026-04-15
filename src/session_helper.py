@@ -1,6 +1,7 @@
 from duckdb import DuckDBPyConnection
 import duckdb
 from langchain_core.documents import Document
+from langchain_groq import ChatGroq
 import os
 import pandas as pd
 import faiss, pickle
@@ -120,3 +121,30 @@ def load_model_and_index():
     with open(os.path.join(base_dir, "../data/processed/faiss_meta.pkl"), 'rb') as f:
         metadata = pickle.load(f)
     return model, index, metadata
+
+def construct_groq_instance(key = ""):
+    """
+    Attempts to setup a LLM instance with Groq for RAG use.
+
+    Input
+    -----
+    key: str (default = "")
+    The Groq API Key, if this value is "", it's assumed none is given and defaults to the .env key if it exists.
+
+    Output
+    ------
+    A LLM instance to be used for RAG.
+    """
+    try:
+        if key == "":
+            return ChatGroq(
+                model="qwen/qwen3-32b",
+                api_key=os.getenv("GROQ_API_KEY")
+            )
+        else:
+            return ChatGroq(
+                model="qwen/qwen3-32b",
+                api_key=key
+            )
+    except Exception as e:
+        raise EnvironmentError(f"No working GROQ_API_KEY was detected. Full details of the error are below:\n {e}")

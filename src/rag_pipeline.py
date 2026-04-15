@@ -2,7 +2,8 @@ import os
 import re
 import faiss
 import pickle
-import numpy as np
+#import numpy as np
+from collections.abc import Callable
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from langchain_groq import ChatGroq
@@ -33,12 +34,6 @@ embedding_model = SentenceTransformer(MODEL_NAME)
 faiss_index = faiss.read_index(FAISS_INDEX_PATH)
 with open(FAISS_META_PATH, 'rb') as f:
     faiss_metadata = pickle.load(f)
-
-# Groq LLM — fast, free, no GPU required
-llm = ChatGroq(
-    model="qwen/qwen3-32b",
-    api_key=os.getenv("GROQ_API_KEY")
-)
 
 # DuckDB connection for BM25
 con = init_session()
@@ -123,36 +118,40 @@ def strip_thinking(text):
 
 # ── RAG chains ─────────────────────────────────────────────────────────────────
 
-# Semantic-only RAG chain
-rag_chain = (
-    {
-        "context": RunnableLambda(lambda q: build_context(retrieve_semantic(q))),
-        "question": RunnablePassthrough()
-    }
-    | prompt_template
-    | llm
-    | StrOutputParser()
-)
+def build_rag_chain(llm: ChatGroq, context_func: Callable):
+    """
+    Construct a RAG chain.
 
-# Hybrid RAG chain (semantic + BM25)
-hybrid_rag_chain = (
-    {
-        "context": RunnableLambda(lambda q: build_context(retrieve_hybrid(q))),
-        "question": RunnablePassthrough()
-    }
-    | prompt_template
-    | llm
-    | StrOutputParser()
-)
+    Parameters
+    ----------
+    llm : A ChatGroq instance configured with a valid API key
+    context_func  : Callable function for providing context for the LLM.
+
+    Returns
+    -------
+    RunnableSerializable: A runnable RAG Chain object.
+    """
+    rag_chain = (
+        {
+            "context": RunnableLambda(lambda q: build_context(context_func(q))),
+            "question": RunnablePassthrough()
+        }
+        | prompt_template
+        | llm
+        | StrOutputParser()
+    )
+    return rag_chain
+    
 
 
-def ask(query, mode="hybrid"):
+def ask(query, llm, mode="hybrid"):
     """
     Run a query through the RAG pipeline.
 
     Parameters
     ----------
     query : the user's search question
+    llm : A ChatGroq instance configured with a valid API key
     mode  : 'semantic', 'bm25', or 'hybrid' (default)
 
     Returns
@@ -161,7 +160,7 @@ def ask(query, mode="hybrid"):
     """
     if mode == "semantic":
         docs   = retrieve_semantic(query)
-        answer = strip_thinking(rag_chain.invoke(query))
+        answer = strip_thinking(build_rag_chain(llm, retrieve_semantic).invoke(query))
     elif mode == "bm25":
         docs   = retrieve_bm25(query)
         # BM25-only uses same prompt, just different context
@@ -173,7 +172,7 @@ def ask(query, mode="hybrid"):
         )
     else:
         docs   = retrieve_hybrid(query)
-        answer = strip_thinking(hybrid_rag_chain.invoke(query))
+        answer = strip_thinking(build_rag_chain(llm, retrieve_hybrid).invoke(query))
 
     return {"answer": answer, "docs": docs}
 
@@ -181,7 +180,18 @@ def ask(query, mode="hybrid"):
 # ── Smoke test ─────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    result = ask("What is a good garden hose for 50ft?", mode="hybrid")
+
+    # Setup LLM for RAG
+    # NOTE: Ensure that .env has been setup with GROQ_API_KEY!
+    try:
+        llm = ChatGroq(
+            model="qwen/qwen3-32b",
+            api_key=os.getenv("GROQ_API_KEY")
+        )
+    except Exception as e:
+        raise EnvironmentError(f"Ensure that the .env file has been configured with a working GROQ_API_KEY. Full details of the error are below:\n {e}")
+
+    result = ask("What is a good garden hose for 50ft?", llm = llm, mode="hybrid")
     print("Answer:\n", result["answer"])
     print("\nTop products:")
     for d in result["docs"]:
