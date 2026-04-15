@@ -3,6 +3,8 @@ import duckdb
 from langchain_core.documents import Document
 import os
 import pandas as pd
+import faiss, pickle
+from sentence_transformers import SentenceTransformer
 
 """
 Helper code set up in notebooks/milestone1_exploration.ipynb
@@ -110,3 +112,11 @@ def create_langchain_review_generator(con):
                     'image_url': row['image_url']
                 }
             )
+
+def load_model_and_index():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    model    = SentenceTransformer("all-MiniLM-L6-v2")
+    index    = faiss.read_index(os.path.join(base_dir, "../data/processed/faiss_index.bin"))
+    with open(os.path.join(base_dir, "../data/processed/faiss_meta.pkl"), 'rb') as f:
+        metadata = pickle.load(f)
+    return model, index, metadata

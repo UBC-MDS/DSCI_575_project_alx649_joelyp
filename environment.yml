@@ -1,6 +1,6 @@
 # install with conda env create -f environment.yml
 # env file is built off the DSCI 575 env file with additional packages for app functionality as needed 
-name: 'amazon-recommender'
+name: 'amz'
 channels:
   - conda-forge
   - pytorch
