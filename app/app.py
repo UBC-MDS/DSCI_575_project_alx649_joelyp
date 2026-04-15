@@ -1,7 +1,262 @@
 import streamlit as st
 import pandas as pd
- 
-st.write("""
-# My first app
-Hello *world!*
-""")
+import sys
+import os
+import csv
+import warnings
+from datetime import datetime
+
+# Suppress FutureWarnings from transformers and disable tokenizer parallelism
+warnings.filterwarnings("ignore", category=FutureWarning)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# ── Path setup ─────────────────────────────────────────────────────────────────
+# Add src/ to the Python path 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
+from session_helper import init_session, load_model_and_index, construct_groq_instance
+from rag_pipeline import ask               # unified RAG entry point used in Tab 2
+import bm25                               # BM25 keyword retriever
+import semantic                          # FAISS semantic retriever
+
+# ── Page config ────────────────────────────────────────────────────────────────
+# layout="wide" uses the full browser width 
+st.set_page_config(
+    page_title="Amazon PLG Search",
+    page_icon="🌿",
+    layout="wide"
+)
+
+# ── Load resources ─────────────────────────────────────────────────────────────
+# @st.cache_resource ensures these heavy objects are only loaded once per session
+@st.cache_resource
+def get_connection():       # opens read-only DuckDB connection to processed database
+    return init_session()
+
+@st.cache_resource
+def get_semantic_resources():      # loads SentenceTransformer, FAISS, product metadata
+    return load_model_and_index()
+
+con = get_connection()
+sem_model, sem_index, sem_metadata = get_semantic_resources()
+
+# ── Feedback storage ───────────────────────────────────────────────────────────
+FEEDBACK_PATH = os.path.join(os.path.dirname(__file__), "../data/processed/feedback.csv")
+
+def save_feedback(query, method, asin, title, vote):
+    """
+    Append a single feedback row to the feedback CSV.
+    Creates the file with headers if it doesn't exist yet.
+
+    Parameters
+    ----------
+    query  : the search string the user entered
+    method : which retrieval method was used (BM25, Semantic, Hybrid, RAG-*)
+    asin   : the product's parent_asin identifier
+    title  : the product title shown to the user
+    vote   : 'up' or 'down'
+    """
+    file_exists = os.path.exists(FEEDBACK_PATH)
+    with open(FEEDBACK_PATH, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(
+            f, fieldnames=['timestamp', 'query', 'method', 'asin', 'title', 'vote']
+        )
+        if not file_exists:      # only write header row if file being created for first time
+            writer.writeheader()
+        writer.writerow({
+            'timestamp': datetime.now().isoformat(),
+            'query':     query,
+            'method':    method,
+            'asin':      asin,
+            'title':     title,
+            'vote':      vote
+        })
+
+# ── Star rating helper ─────────────────────────────────────────────────────────
+def stars(rating):
+    """
+    Convert a numeric rating (e.g. 4.2) into a star string (e.g. ★★★★☆  4.2).
+    Rounds to the nearest whole star to avoid half-star unicode issues.
+    Returns 'No rating' if the value is missing or non-numeric.
+    """
+    if not rating or str(rating) == 'nan':
+        return "No rating"
+    r      = float(rating)
+    filled = int(round(r))   # round to nearest whole number of stars
+    empty  = 5 - filled
+    return "★" * filled + "☆" * empty + f"  {r:.1f}"
+
+# ── Price formatter ────────────────────────────────────────────────────────────
+def format_price(price):
+    """
+    Safely format a price value as a dollar string.
+    Returns 'Price unavailable' for NaN, None, or non-numeric values —
+    which are common in this dataset since many products have no listed price.
+    """
+    try:
+        val = float(price)
+        if pd.isna(val):
+            return "Price unavailable"
+        return f"${val:.2f}"
+    except (TypeError, ValueError):
+        return "Price unavailable"
+
+# ── Result card renderer ───────────────────────────────────────────────────────
+def render_result(doc, idx, query, method, show_score=True):
+    """
+    Render a single product result as a bordered Streamlit container.
+    Displays title, rating, price, store, and optionally the retrieval score.
+    Includes thumbs up/down feedback buttons that write to feedback.csv.
+
+    Parameters
+    ----------
+    doc        : dict of product metadata (parent_asin, title, rating, etc.)
+    idx        : zero-based position in the results list (used for display + button keys)
+    query      : the original search query (stored in feedback)
+    method     : retrieval method used (stored in feedback)
+    show_score : whether to display the retrieval score (True for Search, False for RAG)
+    """
+    title  = doc.get('title', 'Unknown Product')
+    asin   = doc.get('parent_asin', 'N/A')
+    # average_rating is from metadata => rating is from reviews — check both
+    rating = doc.get('average_rating') or doc.get('rating')
+    price  = doc.get('price')
+    store  = doc.get('store', '')
+    score  = doc.get('score')
+
+    # st.container(border=True) => draws native Streamlit bordered card
+    with st.container(border=True):
+        st.markdown(f"**{idx + 1}. {title}**")
+
+        # Four evenly spaced columns for metadata fields
+        cols = st.columns([2, 2, 2, 2])
+        cols[0].caption(f"Rating: {stars(rating)}")
+        cols[1].caption(f"Price: {format_price(price)}")
+        cols[2].caption(f"Store: {store if store else 'N/A'}")
+        if show_score and score:
+            cols[3].caption(f"Score: {score:.3f}")
+
+        # Feedback buttons — include both method and idx in the key => unique
+        fb1, fb2, _ = st.columns([1, 1, 8])
+        with fb1:
+            if st.button("👍", key=f"{method}_up_{idx}"):
+                save_feedback(query, method, asin, title, "up")
+                st.toast("Thanks for the feedback!")
+        with fb2:
+            if st.button("👎", key=f"{method}_down_{idx}"):
+                save_feedback(query, method, asin, title, "down")
+                st.toast("Thanks for the feedback!")
+
+# ── Header ─────────────────────────────────────────────────────────────────────
+st.title("🌿 Amazon Patio, Lawn & Garden Search")
+st.caption("Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
+
+st.divider()
+
+# ── Tabs ───────────────────────────────────────────────────────────────────────
+tab_search, tab_rag = st.tabs(["🔍 Search Only", "RAG Mode"])
+with tab_search:
+
+    # st.form groups the text input, radio, and submit button together
+    with st.form(key="search_form"):
+        s_col1, s_col2 = st.columns([3, 1])
+        with s_col1:
+            search_query = st.text_input(
+                "Search query",
+                placeholder="e.g. garden hose 50ft, something to keep pests away..."
+            )
+        with s_col2:
+            search_method = st.radio(
+                "Method",
+                options=["BM25", "Semantic", "Hybrid"],
+                horizontal=True
+            )
+        # form_submit_button triggers on both button click and Enter key
+        search_btn = st.form_submit_button("🔍 Search", use_container_width=True)
+
+    if search_btn and search_query.strip():
+        with st.spinner("Searching..."):
+
+            if search_method == "BM25":
+                # Keyword search via DuckDB FTS index — fast, exact token matching
+                results = bm25.query_k_highest(con, search_query, k=25).to_dict(orient='records')
+
+            elif search_method == "Semantic":
+                # Vector similarity search via FAISS — captures intent, not just keywords
+                res     = semantic.query_k_highest(con, search_query, k=25)
+                results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
+
+            else:  # Hybrid
+                # Combine both retrievers and deduplicate by parent_asin
+                # Semantic results take priority => BM25 fills in any gaps
+                bm25_r = bm25.query_k_highest(con, search_query, k=25).to_dict(orient='records')
+                sem_r  = semantic.query_k_highest(con, search_query, k=25)
+                sem_r  = sem_r.to_dict(orient='records') if isinstance(sem_r, pd.DataFrame) else sem_r
+
+                seen, results = set(), []
+                for doc in sem_r + bm25_r:
+                    asin = doc.get('parent_asin')
+                    if asin not in seen:
+                        seen.add(asin)
+                        results.append(doc)
+                results = results[:25]
+
+        st.markdown(f"**Top {len(results)} results** for *\"{search_query}\"* — **{search_method}**")
+        st.divider()
+
+        if not results:
+            st.warning("No results found. Try a different query or search method.")
+        else:
+            for i, doc in enumerate(results):
+                render_result(doc, i, search_query, search_method)
+
+    elif search_btn:
+        # Submitted with an empty query
+        st.warning("Please enter a search query.")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 2 — RAG Mode
+with tab_rag:
+    st.caption("AI-generated answers grounded in real product data.")
+
+    with st.form(key="rag_form"):
+        r_col1, r_col2 = st.columns([3, 1])
+        with r_col1:
+            rag_query = st.text_input(
+                "Ask a question",
+                placeholder="e.g. What is the best garden hose for 50ft?"
+            )
+        with r_col2:
+            rag_method = st.radio(
+                "Retriever",
+                options=["Hybrid", "Semantic", "BM25"],
+                horizontal=True
+            )
+        rag_key = st.text_input(
+            "Add Groq API Key here (tries to use .env key if not entered and running locally)",
+            placeholder="gsk_0123456789XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        )
+        rag_btn = st.form_submit_button("🤖 Ask", use_container_width=True)
+
+    if rag_btn and rag_query.strip():
+        with st.spinner("Retrieving and generating answer..."):
+            # ask() runs the full RAG chain: retrieve => build context => prompt => LLM
+            # Returns a dict with 'answer' (str) and 'docs' (list of metadata dicts)
+            llm_instance = construct_groq_instance(rag_key)
+
+            result = ask(rag_query, llm = llm_instance, mode=rag_method.lower())
+            answer = result["answer"]
+            docs   = result["docs"]
+
+        # st.info renders the LLM answer in a native Streamlit info box
+        st.info(answer, icon="🤖")
+
+        # Show the source products the LLM used to generate its answer
+        st.markdown("**Retrieved Products**")
+        st.divider()
+
+        for i, doc in enumerate(docs):
+            # show_score=False in RAG mode 
+            render_result(doc, i, rag_query, f"RAG-{rag_method}", show_score=False)
+
+    elif rag_btn:
+        st.warning("Please enter a question.")
