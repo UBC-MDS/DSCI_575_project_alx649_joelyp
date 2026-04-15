@@ -12,8 +12,16 @@ Navigate to the repo folder after cloning and run the following:
 
 ```
 conda env create -f environment.yml
-conda activate amazon-recommender
+conda activate amz
 ```
+
+To utilize the LLM-powered RAG Search, a Groq API Key is required. You can generate one by creating a free Groq account and navigating to [API Keys](https://console.groq.com/keys). To then run the app locally, clone `.env.example` to create a `.env` file in exact folder `.env.example` is currently located in. The `.env` file when configured will look something like the following:
+
+```
+GROQ_API_KEY=gsk_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ # Dummy Groq API Key used
+```
+
+Upon adding the `.env` file, the RAG search can be run locally without having to input your API Key for each query. **NOTE: This `.env` change is necessary to run the LLM based tests in `notebooks/milestone2_rag.ipynb` and `src/rag_pipeline.py`.**
 
 ### Data Preprocessing
 
