@@ -3,3 +3,4 @@ data/*
 
 *.ipynb_checkpoints*
 src/dummytest.csv
+*__pycache__*
