@@ -40,6 +40,16 @@ def get_semantic_resources():      # loads SentenceTransformer, FAISS, product m
 con = get_connection()
 sem_model, sem_index, sem_metadata = get_semantic_resources()
 
+# Session state memory values
+if "search_results" not in st.session_state:
+    st.session_state.last_query = ""
+    st.session_state.last_method = ""
+    st.session_state.search_results = []
+
+if "flash_message" in st.session_state:
+    st.toast(st.session_state.flash_message, icon="✅")
+    del st.session_state.flash_message # Clear it so it only shows once
+
 # ── Feedback storage ───────────────────────────────────────────────────────────
 FEEDBACK_PATH = os.path.join(os.path.dirname(__file__), "../data/processed/feedback.csv")
 
@@ -107,6 +117,7 @@ def render_result(doc, idx, query, method, show_score=True):
     Render a single product result as a bordered Streamlit container.
     Displays title, rating, price, store, and optionally the retrieval score.
     Includes thumbs up/down feedback buttons that write to feedback.csv.
+    Feedback system is race-condition-proof.
 
     Parameters
     ----------
@@ -124,11 +135,19 @@ def render_result(doc, idx, query, method, show_score=True):
     store  = doc.get('store', '')
     score  = doc.get('score')
 
-    # st.container(border=True) => draws native Streamlit bordered card
+    # Define a unique key for the widget and the lock
+    # Including 'method' and 'idx' ensures keys don't collide if the 
+    # same ASIN appears in different search types or positions.
+    fb_key = f"fb_{method}_{asin}_{idx}"
+    lock_key = f"lock_{fb_key}"
+
+    # Initialize the lock for this specific result if it doesn't exist
+    if lock_key not in st.session_state:
+        st.session_state[lock_key] = False
+
     with st.container(border=True):
         st.markdown(f"**{idx + 1}. {title}**")
 
-        # Four evenly spaced columns for metadata fields
         cols = st.columns([2, 2, 2, 2])
         cols[0].caption(f"Rating: {stars(rating)}")
         cols[1].caption(f"Price: {format_price(price)}")
@@ -136,17 +155,30 @@ def render_result(doc, idx, query, method, show_score=True):
         if show_score and score:
             cols[3].caption(f"Score: {score:.3f}")
 
-        # Feedback buttons — include both method and idx in the key => unique
-        fb1, fb2, _ = st.columns([1, 1, 8])
-        with fb1:
-            if st.button("👍", key=f"{method}_up_{idx}"):
-                save_feedback(query, method, asin, title, "up")
-                st.toast("Thanks for the feedback!")
-        with fb2:
-            if st.button("👎", key=f"{method}_down_{idx}"):
-                save_feedback(query, method, asin, title, "down")
-                st.toast("Thanks for the feedback!")
+        fb, _ = st.columns([2, 8])
+        with fb:
+            # The widget is disabled once the lock is set to True
+            feedback_val = st.feedback(
+                options="thumbs", 
+                key=fb_key,
+                disabled=st.session_state[lock_key]
+            )
 
+            # Check if user interacted AND we haven't processed this vote yet
+            if feedback_val is not None and not st.session_state[lock_key]:
+                # 1. SET LOCK IMMEDIATELY
+                st.session_state[lock_key] = True
+                
+                # 2. Map and Save (1 = Up, 0 = Down)
+                score_type = "up" if feedback_val == 1 else "down"
+                save_feedback(query, method, asin, title, score_type)
+                
+                # 3. Provide immediate UI feedback
+                st.session_state.flash_message = f"Recorded feedback for {title}"
+
+                # 4. Rerun to refresh the UI and show the 'disabled' state
+                st.rerun()
+ 
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.title("🌿 Amazon Patio, Lawn & Garden Search")
 st.caption("Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
@@ -176,36 +208,45 @@ with tab_search:
         search_btn = st.form_submit_button("🔍 Search", use_container_width=True)
 
     if search_btn and search_query.strip():
-        with st.spinner("Searching..."):
+        # Clear previous search's feedback locks
+        for key in list(st.session_state.keys()):
+            if key.startswith("lock_fb_"):
+                del st.session_state[key]
 
+        with st.spinner("Searching..."):
+            st.session_state.last_query = search_query
+            st.session_state.last_method = search_method
+            results = None
             if search_method == "BM25":
                 # Keyword search via DuckDB FTS index — fast, exact token matching
                 results = bm25.query_k_highest(con, search_query, k=25).to_dict(orient='records')
-
+            
             elif search_method == "Semantic":
                 # Vector similarity search via FAISS — captures intent, not just keywords
                 res     = semantic.query_k_highest(con, search_query, k=25)
                 results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
-
+            
             else:  # Hybrid
                 # Combine both retrievers and deduplicate by parent_asin
                 # Semantic results take priority => BM25 fills in any gaps
                 hr = HybridRetriever(k = 25)
                 res = hr.query(con, search_query)
                 results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
+            st.session_state.search_results = results
                 
         st.markdown(f"**Top {len(results)} results** for *\"{search_query}\"* — **{search_method}**")
         st.divider()
 
-        if not results:
-            st.warning("No results found. Try a different query or search method.")
-        else:
-            for i, doc in enumerate(results):
-                render_result(doc, i, search_query, search_method)
-
-    elif search_btn:
+    if st.session_state.search_results:
+        for i, doc in enumerate(st.session_state.search_results):
+            render_result(doc, i, search_query, search_method)
+        
+    elif search_btn: # No results
         # Submitted with an empty query
-        st.warning("Please enter a search query.")
+        if search_query == "": # blank query
+            st.warning("Please enter a search query.")
+        else:
+            st.warning("No results found. Try a different query or search method.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — RAG Mode
@@ -232,25 +273,35 @@ with tab_rag:
         rag_btn = st.form_submit_button("🤖 Ask", use_container_width=True)
 
     if rag_btn and rag_query.strip():
+        # Clear locks
+        for key in list(st.session_state.keys()):
+            if key.startswith("lock_fb_"):
+                del st.session_state[key]
+
         with st.spinner("Retrieving and generating answer..."):
-            # ask() runs the full RAG chain: retrieve => build context => prompt => LLM
-            # Returns a dict with 'answer' (str) and 'docs' (list of metadata dicts)
+            # Use a unique key for RAG state to avoid Search Tab conflicts
             llm_instance = construct_groq_instance(rag_key)
+            result = ask(rag_query, llm=llm_instance, mode=rag_method.lower())
+            
+            st.session_state.rag_results = result  # Dedicated RAG key
+            st.session_state.last_rag_query = rag_query
+            st.session_state.last_rag_method = rag_method
 
-            result = ask(rag_query, llm = llm_instance, mode=rag_method.lower())
-            answer = result["answer"]
-            docs   = result["docs"]
+    # Rendering outside the 'if rag_btn' block for persistence
+    if st.session_state.get("rag_results"):
+        res = st.session_state.rag_results
+        q_text = st.session_state.get("last_rag_query", "")
+        m_text = st.session_state.get("last_rag_method", "")
 
-        # st.info renders the LLM answer in a native Streamlit info box
-        st.info(answer, icon="🤖")
+        st.info(res["answer"], icon="🤖")
 
-        # Show the source products the LLM used to generate its answer
-        st.markdown("**Retrieved Products**")
+        st.markdown(f"**Retrieved Products for:** *\"{q_text}\"*")
         st.divider()
 
-        for i, doc in enumerate(docs):
-            # show_score=False in RAG mode
-            render_result(doc, i, rag_query, f"RAG-{rag_method}", show_score=False)
+        # Iterate over the 'docs' list specifically
+        for i, doc in enumerate(res.get("docs", [])):
+            # Pass the query/method from session_state so they persist during feedback
+            render_result(doc, i, q_text, f"RAG-{m_text}")
 
     elif rag_btn:
         st.warning("Please enter a question.")
