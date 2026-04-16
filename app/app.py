@@ -175,7 +175,7 @@ def render_result(doc, idx, query, method, show_score=True):
                 
                 # 3. Provide immediate UI feedback
                 st.session_state.flash_message = f"Recorded feedback for {title}"
-                
+
                 # 4. Rerun to refresh the UI and show the 'disabled' state
                 st.rerun()
  
@@ -273,25 +273,35 @@ with tab_rag:
         rag_btn = st.form_submit_button("🤖 Ask", use_container_width=True)
 
     if rag_btn and rag_query.strip():
+        # Clear locks
+        for key in list(st.session_state.keys()):
+            if key.startswith("lock_fb_"):
+                del st.session_state[key]
+
         with st.spinner("Retrieving and generating answer..."):
-            # ask() runs the full RAG chain: retrieve => build context => prompt => LLM
-            # Returns a dict with 'answer' (str) and 'docs' (list of metadata dicts)
+            # Use a unique key for RAG state to avoid Search Tab conflicts
             llm_instance = construct_groq_instance(rag_key)
+            result = ask(rag_query, llm=llm_instance, mode=rag_method.lower())
+            
+            st.session_state.rag_results = result  # Dedicated RAG key
+            st.session_state.last_rag_query = rag_query
+            st.session_state.last_rag_method = rag_method
 
-            result = ask(rag_query, llm = llm_instance, mode=rag_method.lower())
-            answer = result["answer"]
-            docs   = result["docs"]
+    # Rendering outside the 'if rag_btn' block for persistence
+    if st.session_state.get("rag_results"):
+        res = st.session_state.rag_results
+        q_text = st.session_state.get("last_rag_query", "")
+        m_text = st.session_state.get("last_rag_method", "")
 
-        # st.info renders the LLM answer in a native Streamlit info box
-        st.info(answer, icon="🤖")
+        st.info(res["answer"], icon="🤖")
 
-        # Show the source products the LLM used to generate its answer
-        st.markdown("**Retrieved Products**")
+        st.markdown(f"**Retrieved Products for:** *\"{q_text}\"*")
         st.divider()
 
-        for i, doc in enumerate(docs):
-            # show_score=False in RAG mode
-            render_result(doc, i, rag_query, f"RAG-{rag_method}", show_score=False)
+        # Iterate over the 'docs' list specifically
+        for i, doc in enumerate(res.get("docs", [])):
+            # Pass the query/method from session_state so they persist during feedback
+            render_result(doc, i, q_text, f"RAG-{m_text}")
 
     elif rag_btn:
         st.warning("Please enter a question.")
