@@ -4,7 +4,8 @@ from langchain_core.documents import Document
 from langchain_groq import ChatGroq
 import os
 import pandas as pd
-import faiss, pickle
+import faiss
+import pickle
 from sentence_transformers import SentenceTransformer
 
 """
