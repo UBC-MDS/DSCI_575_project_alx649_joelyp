@@ -40,10 +40,15 @@ def get_semantic_resources():      # loads SentenceTransformer, FAISS, product m
 con = get_connection()
 sem_model, sem_index, sem_metadata = get_semantic_resources()
 
+# Session state memory values
 if "search_results" not in st.session_state:
     st.session_state.last_query = ""
     st.session_state.last_method = ""
     st.session_state.search_results = []
+
+if "flash_message" in st.session_state:
+    st.toast(st.session_state.flash_message, icon="✅")
+    del st.session_state.flash_message # Clear it so it only shows once
 
 # ── Feedback storage ───────────────────────────────────────────────────────────
 FEEDBACK_PATH = os.path.join(os.path.dirname(__file__), "../data/processed/feedback.csv")
@@ -112,6 +117,7 @@ def render_result(doc, idx, query, method, show_score=True):
     Render a single product result as a bordered Streamlit container.
     Displays title, rating, price, store, and optionally the retrieval score.
     Includes thumbs up/down feedback buttons that write to feedback.csv.
+    Feedback system is race-condition-proof.
 
     Parameters
     ----------
@@ -129,11 +135,19 @@ def render_result(doc, idx, query, method, show_score=True):
     store  = doc.get('store', '')
     score  = doc.get('score')
 
-    # st.container(border=True) => draws native Streamlit bordered card
+    # Define a unique key for the widget and the lock
+    # Including 'method' and 'idx' ensures keys don't collide if the 
+    # same ASIN appears in different search types or positions.
+    fb_key = f"fb_{method}_{asin}_{idx}"
+    lock_key = f"lock_{fb_key}"
+
+    # Initialize the lock for this specific result if it doesn't exist
+    if lock_key not in st.session_state:
+        st.session_state[lock_key] = False
+
     with st.container(border=True):
         st.markdown(f"**{idx + 1}. {title}**")
 
-        # Four evenly spaced columns for metadata fields
         cols = st.columns([2, 2, 2, 2])
         cols[0].caption(f"Rating: {stars(rating)}")
         cols[1].caption(f"Price: {format_price(price)}")
@@ -141,13 +155,29 @@ def render_result(doc, idx, query, method, show_score=True):
         if show_score and score:
             cols[3].caption(f"Score: {score:.3f}")
 
-        # Feedback buttons — include both method and idx in the key => unique
-        fb,_ = st.columns([2, 8])
+        fb, _ = st.columns([2, 8])
         with fb:
-            feedback_val = st.feedback(options = "thumbs", key = asin)
-            if feedback_val is not None:
-                st.toast("Thanks for the feedback!", duration = "short")
-                save_feedback(query, method, asin, title, feedback_val)
+            # The widget is disabled once the lock is set to True
+            feedback_val = st.feedback(
+                options="thumbs", 
+                key=fb_key,
+                disabled=st.session_state[lock_key]
+            )
+
+            # Check if user interacted AND we haven't processed this vote yet
+            if feedback_val is not None and not st.session_state[lock_key]:
+                # 1. SET LOCK IMMEDIATELY
+                st.session_state[lock_key] = True
+                
+                # 2. Map and Save (1 = Up, 0 = Down)
+                score_type = "up" if feedback_val == 1 else "down"
+                save_feedback(query, method, asin, title, score_type)
+                
+                # 3. Provide immediate UI feedback
+                st.session_state.flash_message = f"Recorded feedback for {title}"
+                
+                # 4. Rerun to refresh the UI and show the 'disabled' state
+                st.rerun()
  
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.title("🌿 Amazon Patio, Lawn & Garden Search")
@@ -178,6 +208,11 @@ with tab_search:
         search_btn = st.form_submit_button("🔍 Search", use_container_width=True)
 
     if search_btn and search_query.strip():
+        # Clear previous search's feedback locks
+        for key in list(st.session_state.keys()):
+            if key.startswith("lock_fb_"):
+                del st.session_state[key]
+
         with st.spinner("Searching..."):
             st.session_state.last_query = search_query
             st.session_state.last_method = search_method
