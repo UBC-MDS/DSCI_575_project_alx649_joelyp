@@ -1,9 +1,5 @@
 from session_helper import *
 
-import pandas as pd
-from langchain_community.retrievers import BM25Retriever
-from langchain_core.documents import Document
-
 from nltk.tokenize import word_tokenize
 import string
 
@@ -25,7 +21,7 @@ def preprocess_for_search(text):
     return " ".join(clean_tokens)
 
 
-def query_k_highest(con: DuckDBPyConnection, query: str,k: int = 10):
+def query_k_highest(con: DuckDBPyConnection, query: str, k: int = 10):
     """
     Returns the documents with the k highest scores for the query.
     
@@ -71,7 +67,7 @@ if __name__ == "__main__":
     print("Startup session")
     con = init_session()
     
-    result = query_k_highest(con,"potting soil 10L",10)
+    result = query_k_highest(con,"potting soil 10L",10000)
 
     result.to_csv("src/dummytest.csv")
     con.close()
