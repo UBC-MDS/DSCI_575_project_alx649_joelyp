@@ -15,6 +15,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from session_helper import init_session
 import bm25
+from hybrid import HybridRetriever
 
 load_dotenv()
 
@@ -65,19 +66,9 @@ def retrieve_hybrid(query, k=5):
     Semantic results take priority in ordering.
     Returns top k unique products.
     """
-    semantic_docs = retrieve_semantic(query, k=k)
-    bm25_docs     = retrieve_bm25(query, k=k)
-
-    # Deduplicate — first seen wins (semantic has priority)
-    seen     = set()
-    combined = []
-    for doc in semantic_docs + bm25_docs:
-        asin = doc.get('parent_asin')
-        if asin not in seen:
-            seen.add(asin)
-            combined.append(doc)
-
-    return combined[:k]
+    retriever = HybridRetriever(k = k)
+    results = retriever.query(con, query)
+    return results.to_dict(orient='records')
 
 
 # ── Context builder ────────────────────────────────────────────────────────────

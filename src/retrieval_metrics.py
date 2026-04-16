@@ -1,6 +1,6 @@
 import bm25
 import semantic
-from session_helper import *
+from session_helper import init_session, retrieve_test_queries
 import os
 
 

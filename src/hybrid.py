@@ -38,10 +38,10 @@ class HybridRetriever:
         hybrid_results = pd.merge(bm25_results, semantic_results, on = self.merge_cols, how = "outer")
         metric_cols = ["bm25_score","semantic_score"]
         hybrid_results[metric_cols] = hybrid_results[metric_cols].fillna(0)
-        hybrid_results["total_score"] = hybrid_results["bm25_score"]*self.bm_strength + hybrid_results["semantic_score"]*self.semantic_strength
+        hybrid_results["score"] = hybrid_results["bm25_score"]*self.bm_strength + hybrid_results["semantic_score"]*self.semantic_strength
 
         # Return k highest values
-        hybrid_results = hybrid_results.sort_values("total_score", ascending = False)[:self.k]
+        hybrid_results = hybrid_results.sort_values("score", ascending = False)[:self.k]
         return hybrid_results
 
 if __name__ == "__main__": # base class test
