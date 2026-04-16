@@ -11,15 +11,16 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # ── Path setup ─────────────────────────────────────────────────────────────────
-# Add src/ to the Python path 
+# Add src/ to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 from session_helper import init_session, load_model_and_index, construct_groq_instance
 from rag_pipeline import ask               # unified RAG entry point used in Tab 2
 import bm25                               # BM25 keyword retriever
 import semantic                          # FAISS semantic retriever
+from hybrid import HybridRetriever      # Hybrid retriever
 
 # ── Page config ────────────────────────────────────────────────────────────────
-# layout="wide" uses the full browser width 
+# layout="wide" uses the full browser width
 st.set_page_config(
     page_title="Amazon PLG Search",
     page_icon="🌿",
@@ -153,9 +154,10 @@ st.caption("Search 367,000+ products using keyword, semantic, hybrid, or AI-powe
 st.divider()
 
 # ── Tabs ───────────────────────────────────────────────────────────────────────
+
 tab_search, tab_rag = st.tabs(["🔍 Search Only", "RAG Mode"])
 with tab_search:
-
+# TAB 1 - Search Only
     # st.form groups the text input, radio, and submit button together
     with st.form(key="search_form"):
         s_col1, s_col2 = st.columns([3, 1])
@@ -188,18 +190,10 @@ with tab_search:
             else:  # Hybrid
                 # Combine both retrievers and deduplicate by parent_asin
                 # Semantic results take priority => BM25 fills in any gaps
-                bm25_r = bm25.query_k_highest(con, search_query, k=25).to_dict(orient='records')
-                sem_r  = semantic.query_k_highest(con, search_query, k=25)
-                sem_r  = sem_r.to_dict(orient='records') if isinstance(sem_r, pd.DataFrame) else sem_r
-
-                seen, results = set(), []
-                for doc in sem_r + bm25_r:
-                    asin = doc.get('parent_asin')
-                    if asin not in seen:
-                        seen.add(asin)
-                        results.append(doc)
-                results = results[:25]
-
+                hr = HybridRetriever(k = 25)
+                res = hr.query(con, search_query)
+                results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
+                
         st.markdown(f"**Top {len(results)} results** for *\"{search_query}\"* — **{search_method}**")
         st.divider()
 
@@ -255,7 +249,7 @@ with tab_rag:
         st.divider()
 
         for i, doc in enumerate(docs):
-            # show_score=False in RAG mode 
+            # show_score=False in RAG mode
             render_result(doc, i, rag_query, f"RAG-{rag_method}", show_score=False)
 
     elif rag_btn:
