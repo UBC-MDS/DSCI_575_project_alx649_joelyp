@@ -86,6 +86,30 @@ The queries labelled as `Other` are meant to be somewhat extraneous but possible
 
 Full discussion of the results from running the BM25 and semantic searches on `data/processed/test_queries.csv` can be found in `results/milestone1_discussion.md`.
 
+## RAG Implementation and Workflow
+
+The implementation of the RAG workflow utilizes a free Groq API key available here:
+https://console.groq.com/home
+The LLM of choice was the Qwen3-32B model as it is a great open-sourced choice hosted by Groq and with 32B parameters the model has strong reasoning abilities.
+
+The RAG search option can be used with either the BM25, Semantic retriever, or a hybrid options:
+
+**RAG workflow with semantic retriever:**
+
+- Query gets encoded into a vector using all-MiniLM-L6-v2
+- Vector is compared against FAISS index of 20k product embeddings
+- Top 5 most similar products retrieved by cosine/L2 distance
+- Product metadata formatted into a context block
+- Context + query injected into the prompt template
+- Groq LLM generates a grounded answer
+
+**RAG workflow with hybrid retreiver:**
+
+- Query runs through BOTH BM25 (DuckDB FTS) and semantic (FAISS) simultaneously
+- Results from both are merged and deduplicated by parent_asin
+- Semantic results take priority in ordering, BM25 fills gaps
+- Combined top 5 passed as context to the same LLM prompt
+- Rationale: BM25 catches exact keyword matches that semantic misses, semantic catches  intent that BM25 misses
 
 ## References
 
