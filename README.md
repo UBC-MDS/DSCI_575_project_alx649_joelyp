@@ -88,9 +88,8 @@ Full discussion of the results from running the BM25 and semantic searches on `d
 
 ## RAG Implementation and Workflow
 
-The implementation of the RAG workflow utilizes a free Groq API key available here:
-https://console.groq.com/home
-The LLM of choice was the Qwen3-32B model as it is a great open-sourced choice hosted by Groq and with 32B parameters the model has strong reasoning abilities.
+- The implementation of the RAG workflow utilizes a free Groq API key
+- The LLM of choice was the Qwen3-32B model as it is a great open-sourced choice hosted by Groq - With 32B parameters teh Qwen3-32B model has strong reasoning abilities.
 
 The RAG search option can be used with either the BM25, Semantic retriever, or a hybrid options:
 
