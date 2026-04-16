@@ -38,9 +38,9 @@ dependencies:
   - pygraphviz
   - pydot
   - pip
-  - duckdb
   - fastparquet
   - pip:
+    - duckdb
     - torch-summary
     - otter-grader
     - kaleido
