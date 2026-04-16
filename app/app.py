@@ -40,6 +40,11 @@ def get_semantic_resources():      # loads SentenceTransformer, FAISS, product m
 con = get_connection()
 sem_model, sem_index, sem_metadata = get_semantic_resources()
 
+if "search_results" not in st.session_state:
+    st.session_state.last_query = ""
+    st.session_state.last_method = ""
+    st.session_state.search_results = []
+
 # ── Feedback storage ───────────────────────────────────────────────────────────
 FEEDBACK_PATH = os.path.join(os.path.dirname(__file__), "../data/processed/feedback.csv")
 
@@ -137,16 +142,13 @@ def render_result(doc, idx, query, method, show_score=True):
             cols[3].caption(f"Score: {score:.3f}")
 
         # Feedback buttons — include both method and idx in the key => unique
-        fb1, fb2, _ = st.columns([1, 1, 8])
-        with fb1:
-            if st.button("👍", key=f"{method}_up_{idx}"):
-                save_feedback(query, method, asin, title, "up")
-                st.toast("Thanks for the feedback!")
-        with fb2:
-            if st.button("👎", key=f"{method}_down_{idx}"):
-                save_feedback(query, method, asin, title, "down")
-                st.toast("Thanks for the feedback!")
-
+        fb,_ = st.columns([2, 8])
+        with fb:
+            feedback_val = st.feedback(options = "thumbs", key = asin)
+            if feedback_val is not None:
+                st.toast("Thanks for the feedback!", duration = "short")
+                save_feedback(query, method, asin, title, feedback_val)
+ 
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.title("🌿 Amazon Patio, Lawn & Garden Search")
 st.caption("Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
@@ -177,35 +179,39 @@ with tab_search:
 
     if search_btn and search_query.strip():
         with st.spinner("Searching..."):
-
+            st.session_state.last_query = search_query
+            st.session_state.last_method = search_method
+            results = None
             if search_method == "BM25":
                 # Keyword search via DuckDB FTS index — fast, exact token matching
                 results = bm25.query_k_highest(con, search_query, k=25).to_dict(orient='records')
-
+            
             elif search_method == "Semantic":
                 # Vector similarity search via FAISS — captures intent, not just keywords
                 res     = semantic.query_k_highest(con, search_query, k=25)
                 results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
-
+            
             else:  # Hybrid
                 # Combine both retrievers and deduplicate by parent_asin
                 # Semantic results take priority => BM25 fills in any gaps
                 hr = HybridRetriever(k = 25)
                 res = hr.query(con, search_query)
                 results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
+            st.session_state.search_results = results
                 
         st.markdown(f"**Top {len(results)} results** for *\"{search_query}\"* — **{search_method}**")
         st.divider()
 
-        if not results:
-            st.warning("No results found. Try a different query or search method.")
-        else:
-            for i, doc in enumerate(results):
-                render_result(doc, i, search_query, search_method)
-
-    elif search_btn:
+    if st.session_state.search_results:
+        for i, doc in enumerate(st.session_state.search_results):
+            render_result(doc, i, search_query, search_method)
+        
+    elif search_btn: # No results
         # Submitted with an empty query
-        st.warning("Please enter a search query.")
+        if search_query == "": # blank query
+            st.warning("Please enter a search query.")
+        else:
+            st.warning("No results found. Try a different query or search method.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — RAG Mode
