@@ -7,7 +7,6 @@ from collections.abc import Callable
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
@@ -16,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from session_helper import init_session
 import bm25
 from hybrid import HybridRetriever
+from prompts import prompt_template
 
 load_dotenv()
 
@@ -87,17 +87,7 @@ def build_context(docs):
     )
 
 
-# ── Prompt template ────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """You are a helpful Amazon shopping assistant specializing 
-in patio, lawn and garden products. Answer the question using ONLY the 
-provided product context. Be concise and cite product names when possible. 
-If the context does not contain enough information, say so."""
-
-prompt_template = ChatPromptTemplate.from_messages([
-    ("system", SYSTEM_PROMPT),
-    ("human", "Context:\n{context}\n\nQuestion: {question}")
-])
 
 
 # ── Output cleaner ─────────────────────────────────────────────────────────────
@@ -150,10 +140,10 @@ def ask(query, llm, mode="hybrid"):
     dict with keys: answer, docs
     """
     if mode == "semantic":
-        docs   = retrieve_semantic(query)
+        docs   = retrieve_semantic(query, k = 25)
         answer = strip_thinking(build_rag_chain(llm, retrieve_semantic).invoke(query))
     elif mode == "bm25":
-        docs   = retrieve_bm25(query)
+        docs   = retrieve_bm25(query, k = 25)
         # BM25-only uses same prompt, just different context
         context = build_context(docs)
         answer  = strip_thinking(
@@ -162,7 +152,7 @@ def ask(query, llm, mode="hybrid"):
             )
         )
     else:
-        docs   = retrieve_hybrid(query)
+        docs   = retrieve_hybrid(query, k = 25)
         answer = strip_thinking(build_rag_chain(llm, retrieve_hybrid).invoke(query))
 
     return {"answer": answer, "docs": docs}
