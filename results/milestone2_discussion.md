@@ -2,11 +2,37 @@
 
 ## LLM Choice
 
+The LLM model used to support the RAG chain is the `qwen3-32b` model which was accessed using Groq. This model is quite large in comparison to the initally suggested models, so locally downloading and running the model for utilization for this project would require at least 16GB of RAM to even run. 
+
+![Screenshot of token usage from Groq in Milestone 2 from Alexander Wen.](img/groqusage.png)
+
+The alternate method used was to access the model via a free Groq account. From completing roughly 100 queries for testing, it is clear the 500000 token a day limit for this model is sufficient for general use cases. Furthermore by setting up the model through an API key setup, runtimes for each query were completed in a few seconds at most consistently, allowing the high number of parameters in this model to be utilized for accurate and detailed responses.
+
+
 ## RAG Workflow Overview
+
+![Flowchart of the process from a user's input to the returned results and LLM interpretation.](img/ragdiagram.png)
+
+The flowchart here represents the RAG workflow when the user utilizes the "Semantic" option for RAG querying. The workflow with a BM25 retriever is identical asides from replacing the semantic model box with BM25, and the workflow with the hybrid retriever has the same pattern of replacing the semantic retriever with a hybrid one described in the next section. Elliptical containers represent precomputed values either as part of the main query or from setup prior to running the application, whereas rectangular containers are models and intermediate results used in producing the output.
+
+- Input consists of two parts in the actual query typed out and the retriever type selected. The actual query is then tokenized using `bm25.preprocess_for_search` for BM25 or a FAISS vectorization built from a random sample of 20000 products for semantic.
+- `DuckDB` contains the main product data, of which the 25 products that the model finds closest fitting will consist of the `Retrieved Context`.
+- An engineered prompt and this retrieved context is then provided to the LLM model to determine products (if any) that actually fit the query's implied requirements.
+- Based on its findings, the LLM generates a response which then accompanies the retrieved context as the output. 
 
 ## Hybrid Retriever Setup
 
-All further RAG testing for this report utilize the hybrid retriever under the default settings (50% BM25, 50% semantic).
+The first step of this process involves running both the BM25 and semantic retrievers to return the 10000 closest matching results each. 10000 was chosen as this was sufficiently large to expect there to be overlap between the methods while still being restrictive enough so that the majority of potential non-matching items are removed from consideration. Both retrievers return scores for each product indicating how close they are matching to the query. Let's enumerate these scores from $1$ to $10000$. Let $B$ and $S$ be the sets of scores for the BM25 and semantic retrievers such that $B_i$ and $S_i$ are the scores given from the BM25 and semantic retrievers for an arbritary query and product $i$, $1 \leq i \leq 10000$.
+
+For the hybrid method, we first need to normalize the score ranges of $B$ and $S$ to a score range of 0 to 1, where 1 indicates the closest match for the retriever and 0 the opposite. For BM25, higher scores indicate closer matches, while for semantic, lower scores indicate closer matches. Thus we define sets $B'$ and $S'$ as follows:
+
+$$
+B'_i = \frac{B_i-\text{min}(B)}{\text{max}(B)-\text{min}(B)} 
+
+S'_i = 1 - \frac{S_i-\text{min}(S)}{\text{max}(S)-\text{min}(S)} 
+$$
+
+We then define the set of scores $H$ where for product $i$, $H_i = B'_i*M_B + S'_i*M_S$, where $M_B$ and $M_S$ are the importance factors for the BM25 and semantic searches, and $M_B + M_S = 1$. For all following tests, we assume in this hybrid model that both BM25 and semantic are of equal importance, thus setting $M_B = M_S = 0.5$ so that each method contributes to 50% of the hybrid scoring.
 
 ## RAG Prompt Experimentation
 
@@ -40,10 +66,7 @@ products that were returned. Request for additional clarification in the query i
 
 ## Hybrid RAG Qualative Evaluation
 
-- Testing is done using the hybrid method (50% importance to BM25, 50% to semantic)
-- There are actually quite a few unintentional mispellings in the queries which the LLM was able to work around
-- In many cases the model was able to determine if there was no matching results from the given list, but sometimes did not provide much context as to what was returned. This led to additional updates in the prompt.
-
+For full testing, the suggested query upon running the app locally was tested as well as the `LLM` and `Other` categories from `test_queries.csv`. Below are the verbatim LLM responses for each query:
 
 | Query | Response |
 | -------- | -------- |
@@ -59,8 +82,6 @@ products that were returned. Request for additional clarification in the query i
 |richardella ecuformis| I couldn't find any products matching "Richardella ecuformis" in the provided context. The available products include peonies, pirate flags, allium bulbs, yard bags, and water treatment solutions, but none are related to Richardella ecuformis (a type of ground cover plant). Would you like assistance with similar plants or alternative products?|
 |den mest kompakta och lättbärbara isbehållaren för att förvara kall champagne i över 12 timmar på en varm sommardag| Ingen av de tillgängliga produkterna är en kompakt och lättbärbar isbehållare anpassad för att förvara kall champagne. De produkter som listats handlar om växtduk, saunamat, plantdon, vintabell och dekorativa glasbeads. För att behålla kalla viner på en varm dag rekommenderas att söka efter en kylbarrikád (t.ex. isolerad kassett med is eller termos för flaskor), men inga sådana produkter ingår i det aktuella kontextet. |
  
-The last response was actually in Swedish like the initial query and upon running it in Google Translate translates to "None of the available products is a compact and portable ice container adapted to store cold champagne. The products listed are plant cloth, sauna food, planters, wine tables and decorative glass beads. To keep wines cold on a hot day, it is recommended to look for a cooling barricade (e.g. insulated cassette with ice or thermos for bottles), but no such products are included in the current context."
-
-
-
+ 
+To summarize the findings, utilizing the hybrid retriver would consistently return results of at least equaling or better quality compared to semantic alone which were used by the LLM as context. Overall the LLM is relatively consistent in its response format, and has a understanding of what aspects of a product are of use for the query. There is some inconsistency in if product rating is mentioned but the LLM appears to mention it only when it is reasonably positive to; the result for `good souvinier plants for a trip returning from Peru` in particular, the LLM does recognize the query matches the product description quite well but also does not mention the 1.0/5 rating the product actually has. This is partially an oversight in the LLM not having specific directions in its prompt around ratings, which is a design choice as while generally useful, the rating system has subjective interpretation and is manipulatable through review bombing and/or low review count. The other strength of this LLM is in handling unorthodox queries. Some of the test queries have unintentional mispellings which did not confuse the LLM, and upon the weirder queries in the `Other` section, the interpretations of the results would be of accurate use for a human shopper. Amusingly, the LLM did reply to the last query in Swedish, and upon running it in Google Translate, it translates to "None of the available products is a compact and portable ice container adapted to store cold champagne. The products listed are plant cloth, sauna food, planters, wine tables and decorative glass beads. To keep wines cold on a hot day, it is recommended to look for a cooling barricade (e.g. insulated cassette with ice or thermos for bottles), but no such products are included in the current context."
 
