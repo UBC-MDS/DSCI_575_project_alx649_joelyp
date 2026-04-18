@@ -1,10 +1,9 @@
 # DSCI_575_project_alx649_joelyp
 
-This project is a product recommendation tool utilizing the [2023 Amazon Review Dataset](https://amazon-reviews-2023.github.io) for patio, lawn, and garden items. Currently, there are two retriever methods implemented in this project: a BM25 keyword retriever using DuckDB FTS index and a semantic retriever using FAISS and sentence-transformers. For milestone 2, a LLM powered retrieving method will be implemented as well as an app for live interaction with the search system which is currently in progress.
+This project is a product recommendation tool utilizing the [2023 Amazon Review Dataset](https://amazon-reviews-2023.github.io) for patio, lawn, and garden items. Currently, there are three retriever methods implemented in this project: a BM25 keyword retriever using DuckDB FTS index, a semantic retriever using FAISS and sentence-transformers, and a hybrid retriever combining both BM25 and semantic. These retrievers are supported by the usage of the `qwen3-32b` LLM model accesible through [Groq](https://groq.com) for a RAG querying process.
 
 
 ## Setup
-
 
 ### Environment Setup
 
@@ -15,10 +14,10 @@ conda env create -f environment.yml
 conda activate amz
 ```
 
-To utilize the LLM-powered RAG Search, a Groq API Key is required. You can generate one by creating a free Groq account and navigating to [API Keys](https://console.groq.com/keys). To then run the app locally, clone `.env.example` to create a `.env` file in exact folder `.env.example` is currently located in. The `.env` file when configured will look something like the following:
+To utilize the LLM-powered RAG Search, a Groq API Key is required. You can generate one by creating a free Groq account and navigating to [API Keys](https://console.groq.com/keys). To then run the app locally, create a `.env` file in exact folder this `README` is currently located in with the following line:
 
 ```
-GROQ_API_KEY=gsk_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ # Dummy Groq API Key used
+GROQ_API_KEY=gsk_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ # Dummy Groq API Key used, replace with generated key
 ```
 
 Upon adding the `.env` file, the RAG search can be run locally without having to input your API Key for each query. **NOTE: This `.env` change is necessary to run the LLM based tests in `notebooks/milestone2_rag.ipynb` and `src/rag_pipeline.py`.**
@@ -37,6 +36,7 @@ Note that the full generation of these files will take around 10 minutes to comp
 ### Building the Semantic Index
 
 After running `notebooks/milestone1_preprocessing.ipynb`, build the FAISS index by running:
+
 ```
 python src/semantic.py
 ```
@@ -56,8 +56,11 @@ Currently, the dev branch version of the app is deployed at [https://amazon-reco
 
 - `src/bm25.py` — BM25 keyword retriever using DuckDB FTS index
 - `src/semantic.py` — Semantic retriever using FAISS and sentence-transformers
+- `src/hybrid.py` — Hybrid retriever combining BM25 and semantic
 - `src/session_helper.py` — DuckDB connection and LangChain document utilities
 - `src/retrieval_metrics.py` — Runs all test queries through both retrievers and saves results to `results/test_queries/`
+- `src/prompts.py` - Prompts tested and used for the LLM in RAG querying
+- `src/rag_pipeline.py` - Code infrastructure for the RAG pipelines for each retriever
 
 
 ## Test Query Dataset
@@ -97,7 +100,7 @@ The RAG search option can be used with either the BM25, Semantic retriever, or a
 
 - Query gets encoded into a vector using all-MiniLM-L6-v2
 - Vector is compared against FAISS index of 20k product embeddings
-- Top 5 most similar products retrieved by cosine/L2 distance
+- Top 25 most similar products retrieved by cosine/L2 distance
 - Product metadata formatted into a context block
 - Context + query injected into the prompt template
 - Groq LLM generates a grounded answer
@@ -107,7 +110,7 @@ The RAG search option can be used with either the BM25, Semantic retriever, or a
 - Query runs through BOTH BM25 (DuckDB FTS) and semantic (FAISS) simultaneously
 - Results from both are merged and deduplicated by parent_asin
 - Semantic results take priority in ordering, BM25 fills gaps
-- Combined top 5 passed as context to the same LLM prompt
+- Combined top 25 passed as context to the same LLM prompt
 - Rationale: BM25 catches exact keyword matches that semantic misses, semantic catches  intent that BM25 misses
 
 ## References
