@@ -1,10 +1,9 @@
 # DSCI_575_project_alx649_joelyp
 
-This project is a product recommendation tool utilizing the [2023 Amazon Review Dataset](https://amazon-reviews-2023.github.io) for patio, lawn, and garden items. Currently, there are two retriever methods implemented in this project: a BM25 keyword retriever using DuckDB FTS index and a semantic retriever using FAISS and sentence-transformers. For milestone 2, a LLM powered retrieving method will be implemented as well as an app for live interaction with the search system which is currently in progress.
+This project is a product recommendation tool utilizing the [2023 Amazon Review Dataset](https://amazon-reviews-2023.github.io) for patio, lawn, and garden items. Currently, there are three retriever methods implemented in this project: a BM25 keyword retriever using DuckDB FTS index, a semantic retriever using FAISS and sentence-transformers, and a hybrid retriever combining both BM25 and semantic. These retrievers are supported by the usage of the `qwen3-32b` LLM model accesible through [Groq](https://groq.com) for a RAG querying process.
 
 
 ## Setup
-
 
 ### Environment Setup
 
@@ -12,8 +11,16 @@ Navigate to the repo folder after cloning and run the following:
 
 ```
 conda env create -f environment.yml
-conda activate amazon-recommender
+conda activate amz
 ```
+
+To utilize the LLM-powered RAG Search, a Groq API Key is required. You can generate one by creating a free Groq account and navigating to [API Keys](https://console.groq.com/keys). To then run the app locally, create a `.env` file in exact folder this `README` is currently located in with the following line:
+
+```
+GROQ_API_KEY=gsk_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ # Dummy Groq API Key used, replace with generated key
+```
+
+Upon adding the `.env` file, the RAG search can be run locally without having to input your API Key for each query. **NOTE: This `.env` change is necessary to run the LLM based tests in `notebooks/milestone2_rag.ipynb` and `src/rag_pipeline.py`.**
 
 ### Data Preprocessing
 
@@ -29,6 +36,7 @@ Note that the full generation of these files will take around 10 minutes to comp
 ### Building the Semantic Index
 
 After running `notebooks/milestone1_preprocessing.ipynb`, build the FAISS index by running:
+
 ```
 python src/semantic.py
 ```
@@ -41,15 +49,20 @@ Use the following command to run the app locally (note this may take a while to 
 streamlit run app/app.py
 ```
 
-Currently, the dev branch version of the app is deployed at [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app). The main branch version will be linked in the Github "About" section and added to this README in Milestone 2 once implemented.
+Currently, the dev branch version of the app is deployed at [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app), and the main branch implementation is at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app). Currently both implementations have issues due to several of the resources only being available locally and pushing them to the main repo would be infeasible for their size; a potential plan is to create a miniture dataset for demonstration for deployment in milestone 3.
+
+During the app running, you are able to provide feedback on each queried result in a thumbs up/down system. The feedback for this system is currently stored locally in `data/processed/feedback.csv`. Note there is a potential race condition issue in which a feedback result could be logged twice due to how Streamlit's script processing functions and a race condition bug.
 
 
 ## Source Files
 
 - `src/bm25.py` — BM25 keyword retriever using DuckDB FTS index
 - `src/semantic.py` — Semantic retriever using FAISS and sentence-transformers
+- `src/hybrid.py` — Hybrid retriever combining BM25 and semantic
 - `src/session_helper.py` — DuckDB connection and LangChain document utilities
 - `src/retrieval_metrics.py` — Runs all test queries through both retrievers and saves results to `results/test_queries/`
+- `src/prompts.py` - Prompts tested and used for the LLM in RAG querying
+- `src/rag_pipeline.py` - Code infrastructure for the RAG pipelines for each retriever
 
 
 ## Test Query Dataset
@@ -78,6 +91,29 @@ The queries labelled as `Other` are meant to be somewhat extraneous but possible
 
 Full discussion of the results from running the BM25 and semantic searches on `data/processed/test_queries.csv` can be found in `results/milestone1_discussion.md`.
 
+## RAG Implementation and Workflow
+
+- The implementation of the RAG workflow utilizes a free Groq API key
+- The LLM of choice was the Qwen3-32B model as it is a great open-sourced choice hosted by Groq - With 32B parameters teh Qwen3-32B model has strong reasoning abilities.
+
+The RAG search option can be used with either the BM25, Semantic retriever, or a hybrid options:
+
+**RAG workflow with semantic retriever:**
+
+- Query gets encoded into a vector using all-MiniLM-L6-v2
+- Vector is compared against FAISS index of 20k product embeddings
+- Top 25 most similar products retrieved by cosine/L2 distance
+- Product metadata formatted into a context block
+- Context + query injected into the prompt template
+- Groq LLM generates a grounded answer
+
+**RAG workflow with hybrid retreiver:**
+
+- Query runs through BOTH BM25 (DuckDB FTS) and semantic (FAISS) simultaneously
+- Results from both are merged and deduplicated by parent_asin
+- Semantic results take priority in ordering, BM25 fills gaps
+- Combined top 25 passed as context to the same LLM prompt
+- Rationale: BM25 catches exact keyword matches that semantic misses, semantic catches  intent that BM25 misses
 
 ## References
 
