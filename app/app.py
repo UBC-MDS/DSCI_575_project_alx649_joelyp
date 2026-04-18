@@ -181,7 +181,7 @@ def render_result(doc, idx, query, method, show_score=True):
  
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.title("🌿 Amazon Patio, Lawn & Garden Search")
-st.caption("Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
+st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
 
 st.divider()
 
@@ -251,7 +251,7 @@ with tab_search:
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — RAG Mode
 with tab_rag:
-    st.caption("AI-generated answers grounded in real product data.")
+    st.markdown("### AI-generated answers grounded in real product data.")
 
     with st.form(key="rag_form"):
         r_col1, r_col2 = st.columns([3, 1])
