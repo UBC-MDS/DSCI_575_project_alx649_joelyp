@@ -1,11 +1,25 @@
-# Milestone 2
+# Milestone 2 Report
 
+## LLM Choice
 
+## RAG Workflow Overview
 
-# RAG System Notes
+## Hybrid Retriever Setup
 
-- initial version of the prompt is inconsistent with returning ASIN value
-From initial prompt:
+All further RAG testing for this report utilize the hybrid retriever under the default settings (50% BM25, 50% semantic).
+
+## RAG Prompt Experimentation
+
+An incremental model was utilized for prompt experimentation, in which a basic functional prompt was used, briefly tested, then updated to resolve any weaknesses in it until a prompt of sufficient quality was determined. The first version of the prompt was the following:
+
+```
+You are a helpful Amazon shopping assistant specializing 
+in patio, lawn and garden products. Answer the question using ONLY the 
+provided product context. Be concise and cite product names when possible. 
+If the context does not contain enough information, say so.
+```
+
+This was a generally effective prompt but had consistency issues in what the LLM would return. The main inconsistency was in some cases the response would include the ASIN value of the product while in other cases it would not, such as the example results from this query shown below:
 
 | Query | Response |
 | -------- | -------- |
@@ -13,6 +27,18 @@ From initial prompt:
 | highest rated patio decking options| The highest-rated patio decking options in the provided context are: Suncast 22 Gallon Deck Box (4.6/5) – Combines storage with a bench seat, ideal for small spaces. Keter Westwood 150 Gallon Resin Deck Box (4.5/5) – Spacious, lockable storage for larger patio items. Best Choice Products Raised Garden Bed (4.5/5) – Functions as a decking-like planter for patios or balconies. Note: These are storage and garden solutions rather than traditional decking materials. Actual decking materials (e.g., composite, wood) are not listed in the provided context.|
 |least expensive rake for autumn leaves| The least expensive rake for autumn leaves is the Meccion Mini Garden Rake at $14.99. It is a 16-inch hand rake with rust-resistant steel tines and an ergonomic grip, suitable for collecting leaves and garden debris.|
 
+Rectifying this was to simply additional instruction for this, reworking the second last sentence to `Be concise and cite names and ASIN only for products matching the query.`, which from the following section resolves the issue as it mentions relevant products by ASIN consistently. The final iteration of the prompt was to include case instructions for when no reasonable products matched; at this current state this would have varied results, but most useful was when at a general summarization of the returned products was given. This process led to this final prompt being used:
+
+```
+You are a helpful Amazon shopping assistant specializing 
+in patio, lawn and garden products. Answer the query using ONLY the 
+provided product context. Be concise and cite names and ASIN only for products matching the query. 
+In the case where there are no results that reasonably fit the query, briefly describe the general
+products that were returned. Request for additional clarification in the query if necessary.
+```
+
+
+## Hybrid RAG Qualative Evaluation
 
 - Testing is done using the hybrid method (50% importance to BM25, 50% to semantic)
 - There are actually quite a few unintentional mispellings in the queries which the LLM was able to work around
