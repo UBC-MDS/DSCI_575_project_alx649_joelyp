@@ -49,7 +49,9 @@ Use the following command to run the app locally (note this may take a while to 
 streamlit run app/app.py
 ```
 
-Currently, the dev branch version of the app is deployed at [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app). The main branch version will be linked in the Github "About" section and added to this README in Milestone 2 once implemented.
+Currently, the dev branch version of the app is deployed at [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app), and the main branch implementation is at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app). Currently both implementations have issues due to several of the resources only being available locally and pushing them to the main repo would be infeasible for their size; a potential plan is to create a miniture dataset for demonstration for deployment in milestone 3.
+
+During the app running, you are able to provide feedback on each queried result in a thumbs up/down system. The feedback for this system is currently stored locally in `data/processed/feedback.csv`. Note there is a potential race condition issue in which a feedback result could be logged twice due to how Streamlit's script processing functions and a race condition bug.
 
 
 ## Source Files
