@@ -22,8 +22,8 @@ load_dotenv()
 # ── Paths and constants ────────────────────────────────────────────────────────
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-FAISS_INDEX_PATH = os.path.join(base_dir, "../data/processed/faiss_index.bin")
-FAISS_META_PATH  = os.path.join(base_dir, "../data/processed/faiss_meta.pkl")
+FAISS_INDEX_PATH = os.path.join(base_dir, "../data/processed/faiss_index_merged.bin")
+FAISS_META_PATH  = os.path.join(base_dir, "../data/processed/faiss_index_merged.pkl")
 MODEL_NAME       = "all-MiniLM-L6-v2"
 
 # ── Load models and index once at import time ──────────────────────────────────
