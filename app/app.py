@@ -268,7 +268,8 @@ with tab_rag:
             )
         rag_key = st.text_input(
             "Add Groq API Key here (tries to use .env key if not entered and running locally)",
-            placeholder="gsk_0123456789XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            placeholder="gsk_0123456789XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            type = "password"
         )
         rag_btn = st.form_submit_button("🤖 Ask", use_container_width=True)
 

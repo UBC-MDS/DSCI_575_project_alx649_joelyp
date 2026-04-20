@@ -48,11 +48,24 @@ Demonstration of all of the features can be found in [this explanation video:](r
   
 ## Step 3: Improve Documentation and Code Quality
 
-### Documentation Update
-- Summary of `README` improvements
+<!--This interestingly will probably just end up being the changelog for v0.3.0-->
+
+## Added
+
+### Documentation Updates
+<!-- Summary of `README` improvements -->
+- Include a `Known Issues` section for minor bugs with the application that are to be expected (#46).
+
+
+
+## Changed
 
 ### Code Quality Changes
-- Summary of cleanups
+- Changed the `GROQ_API_KEY` text box for RAG Mode to a hidden text field (#46)
+
+## Removed
+
+
 
 ## Step 4: Cloud Deployment Plan
 
