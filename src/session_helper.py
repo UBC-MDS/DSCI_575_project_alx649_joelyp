@@ -118,8 +118,8 @@ def create_langchain_review_generator(con):
 def load_model_and_index():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     model    = SentenceTransformer("all-MiniLM-L6-v2")
-    index    = faiss.read_index(os.path.join(base_dir, "../data/processed/faiss_index.bin"))
-    with open(os.path.join(base_dir, "../data/processed/faiss_meta.pkl"), 'rb') as f:
+    index    = faiss.read_index(os.path.join(base_dir, "../data/processed/faiss_index_merged.bin"))
+    with open(os.path.join(base_dir, "../data/processed/faiss_index_merged.pkl"), 'rb') as f:
         metadata = pickle.load(f)
     return model, index, metadata
 
