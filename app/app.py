@@ -5,6 +5,9 @@ import os
 import csv
 import warnings
 from datetime import datetime
+import nltk
+
+nltk.download('punkt') # Ensure the tokenizer is ready for app deployment
 
 # Suppress FutureWarnings from transformers and disable tokenizer parallelism
 warnings.filterwarnings("ignore", category=FutureWarning)
