@@ -7,7 +7,12 @@ import warnings
 from datetime import datetime
 import nltk
 
-nltk.download('punkt') # Ensure the tokenizer is ready for app deployment
+# Ensure the tokenizer is ready for app deployment
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt")
+
 
 # Suppress FutureWarnings from transformers and disable tokenizer parallelism
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -184,7 +189,15 @@ def render_result(doc, idx, query, method, show_score=True):
  
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.title("🌿 Amazon Patio, Lawn & Garden Search")
-st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
+
+h_col1, h_col2 = st.columns([3,1])
+with h_col1:
+    st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
+
+with h_col2:
+    if st.button("⬇️ Download Feedback to CSV"):
+        st.session_state.flash_message = "Downloading feedback to feedback.csv"
+
 
 st.divider()
 
