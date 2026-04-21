@@ -11,8 +11,8 @@ import pandas as pd
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_NAME = "all-MiniLM-L6-v2"
-FAISS_INDEX_PATH = os.path.join(base_dir, "../data/processed/faiss_index.bin")
-FAISS_META_PATH  = os.path.join(base_dir, "../data/processed/faiss_meta.pkl")
+FAISS_INDEX_PATH = os.path.join(base_dir, "../data/processed/faiss_index_merged.bin")
+FAISS_META_PATH  = os.path.join(base_dir, "../data/processed/faiss_index_merged.pkl")
 BATCH_SIZE = 1000
 N_DOCS = 20_000
 
@@ -21,21 +21,17 @@ def build_faiss_index(con):
 
     print("Loading documents from DuckDB...")
     df = con.execute(f"""
-        SELECT 
-            parent_asin, title, features, description,
-            average_rating, price, store, image_url
-        FROM meta
-        LIMIT {N_DOCS}
+    SELECT parent_asin, title, average_rating, price, store, image_url, page_content
+    FROM meta_search
+    LIMIT {N_DOCS}
     """).fetchdf()
+
+    texts = df['page_content'].fillna('').tolist()
 
     print(f"Encoding {len(df):,} documents in batches of {BATCH_SIZE}...")
 
     # Build page_content the same way as the generator
-    texts = (
-        df['title'].fillna('') + ' ' +
-        df['features'].fillna('') + ' ' +
-        df['description'].fillna('')
-    ).tolist()
+    texts = df['page_content'].fillna('').tolist()
 
     metadata = df[['parent_asin', 'title', 'average_rating', 'price', 'store', 'image_url']].to_dict(orient='records')
 
