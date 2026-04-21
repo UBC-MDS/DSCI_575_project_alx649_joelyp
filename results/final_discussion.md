@@ -3,35 +3,35 @@
 ## Step 1: Improve Your Workflow
 
 ### Dataset Scaling
-- Number of products used
 
-There are 367832 meta data documents and 15495259 reviews, products is number of meta data documents
+For local development the full 367,832 products and 15.5M reviews are used via 
+the processed DuckDB. 
 
-- Changes to sampling strategy (if any)
-
-Discuss sampling sizes used here for the streamlit deployment
+For Streamlit cloud deployment a random sample of 15,000 
+products and up to 5 of the most helpful reviews (totalling a final 43243 reviews) was used to keep all files under GitHub's 100MB per-file limit.
 
 ### LLM Experiment
 - Models compared (name, family, size)
 
 | Name | Family | Size | Description |
-|-|-|-|-|
-|`qwen/qwen3-32b`| Qwen | 32 billion parameters, 64 layers | Initial setup utilized in Milestone 2, see `results/milestone2_discussion` for more detailed explanation|
+| `llama-3.1-8b-instant` | LLaMA | 8B | Smallest/fastest model tested |
+|`qwen/qwen3-32b`| Qwen | 32B |  Mid-sized, open sourced, good previous experiences|
+| `openai/gpt-oss-20b` | OpenAI OSS | 20B | Mid-size, most conservative responses |
+| `llama-3.3-70b-versatile` | LLaMA | 70B | Largest model, surprisingly shallow outputs |
 
-- Results and discussions
-    - Prompt used (copy it here)
+See `results/milestone2_discussion` for more detailed explanation Qwen3-32B
 
-```
-You are a helpful Amazon shopping assistant specializing 
-in patio, lawn and garden products. Answer the query using ONLY the 
-provided product context. Be concise and cite names and ASIN only for products matching the query. 
-In the case where there are no results that reasonably fit the query, briefly describe the general
-products that were returned. Request for additional clarification in the query if necessary.
-```
-    - Results
-    
-    Very similar to Milestone 2 section, rewrite upon new test Wednesday
-- Which model you chose and why
+### System Prompt Used for all Models
+
+```You are a helpful Amazon shopping assistant specializing 
+in patio, lawn and garden products. Answer the question using ONLY the 
+provided product context. Be concise and cite product names when possible. 
+If the context does not contain enough information, say so.```
+
+### Results and discussions
+`qwen/qwen3-32b` was retained as the default. It consistently produced the most 
+accurate, well-reasoned, and citation-rich responses across all query types. See 
+`results/llm_comparison.md` for the full side-by-side comparison of all 5 prompts.
 
 ## Step 2: Additional Feature (state which option you chose)
 
@@ -45,7 +45,6 @@ For milestone 3 we deployed the Amazon Recommender to a website based applicatio
 Demonstration of all of the features can be found in [this explanation video:](replace with link to video for demo purposes later)
 
 
-  
 ## Step 3: Improve Documentation and Code Quality
 
 <!--This interestingly will probably just end up being the changelog for v0.3.0-->
@@ -69,19 +68,19 @@ Demonstration of all of the features can be found in [this explanation video:](r
 
 ## Step 4: Cloud Deployment Plan
 
-### Data Storage: 
-
-Where will you store the following?
-raw data
-processed data
-vector index
-BM25 index
+### Data Storage
+- **Raw data**: stored locally only, gitignored — too large for any cloud storage
+- **Processed data**: `data/streamlitdeployment/` committed to GitHub (under 100MB per file)
+- **Vector index**: `faiss_index_deploy.bin` committed to GitHub in streamlitdeployment/
+- **BM25 index**: rebuilt at app startup from the deploy DuckDB via PRAGMA create_fts_index
 
 ### Compute
-Where will your app run?
-How will you handle multiple users (concurrency)?
-How will you handle LLM inference (API vs hosted model)?
+- App runs on Streamlit Community Cloud's free tier
+- Concurrency is handled by Streamlit's built-in session isolation and each user gets 
+  their own session state
+- All LLM inference uses Groq API: fully hosted, no local compute required
 
 ### Streaming/Updates
-How will you incorporate new products in production?
-How will your pipeline stay up to date?
+- New products would require rerunning `deployment_preprocessing.ipynb` to regenerate 
+  the deploy DuckDB and FAISS index, then committing the updated files
+- The pipeline has no automated update mechanism and updates are manual at this time
