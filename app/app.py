@@ -30,22 +30,6 @@ if "flash_message" in st.session_state:
     del st.session_state.flash_message # Clear it so it only shows once
 
 
-# Setup parameter variables for file location
-
-DUCKDB_DF = "../data/processed/amazon_reviews.duckdb"
-FAISS_BIN = "../data/processed/faiss_index_merged.bin"
-FAISS_PKL = "../data/processed/faiss_index_merged.pkl"
-RUNNING_LOCALLY = True
-
-if not Path(DUCKDB_DF).exists(): # app is NOT running locally, use streamlitdeployment
-    DUCKDB_DF = "../data/streamlitdeployment/amazon_reviews.duckdb"
-    FAISS_BIN = "../data/streamlitdeployment/faiss_index_merged.bin"
-    FAISS_PKL = "../data/streamlitdeployment/faiss_index_merged.pkl"
-    RUNNING_LOCALLY = False
-
-
-
-
 # Suppress FutureWarnings from transformers and disable tokenizer parallelism
 warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -68,6 +52,23 @@ st.set_page_config(
 )
 
 # ── Load resources ─────────────────────────────────────────────────────────────
+
+# Setup parameter variables for file location
+
+DUCKDB_DF = "../data/processed/amazon_reviews.duckdb"
+FAISS_BIN = "../data/processed/faiss_index_merged.bin"
+FAISS_PKL = "../data/processed/faiss_index_merged.pkl"
+
+if "locally_running" not in st.session_state:
+    st.session_state.locally_running = True
+
+if not Path(DUCKDB_DF).exists(): # app is NOT running locally, use streamlitdeployment
+    DUCKDB_DF = "../data/streamlitdeployment/amazon_reviews.duckdb"
+    FAISS_BIN = "../data/streamlitdeployment/faiss_index_merged.bin"
+    FAISS_PKL = "../data/streamlitdeployment/faiss_index_merged.pkl"
+    st.session_state.locally_running = False
+
+
 # @st.cache_resource ensures these heavy objects are only loaded once per session
 @st.cache_resource
 def get_connection():       # opens read-only DuckDB connection to processed database

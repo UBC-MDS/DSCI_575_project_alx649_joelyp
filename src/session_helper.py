@@ -9,20 +9,32 @@ import pickle
 from sentence_transformers import SentenceTransformer
 
 """
-Helper code set up in notebooks/milestone1_exploration.ipynb
+General helper code for retrival of files in data folder from either app/app.py
+or any file in src.
 """
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    
 def init_session(dbpath = "../data/processed/amazon_reviews.duckdb"):
     """Initializes a duckdb session with a given path to a duckdb file."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    duckdb_path = os.path.join(base_dir, dbpath)
+    duckdb_path = os.path.join(BASE_DIR, dbpath)
     con = duckdb.connect(duckdb_path, read_only=True)
     return con
 
-def retrieve_test_queries():
+def retrieve_faiss(index_path, metadata_path):
+    """Helper function to retrieve the FAISS files necessary for semantic search."""
+    faiss_index_path = os.path.join(BASE_DIR, index_path)
+    faiss_meta_path  = os.path.join(BASE_DIR, metadata_path)
+
+    faiss_index = faiss.read_index(faiss_index_path)
+    with open(faiss_meta_path, 'rb') as f:
+        faiss_metadata = pickle.load(f)
+    
+    return faiss_index, faiss_metadata
+
+def retrieve_test_queries(test_path = "../data/processed/test_queries.csv"):
     """Return the Pandas dataframe with the test queries."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    pd_path = os.path.join(base_dir, "../data/processed/test_queries.csv")
+    pd_path = os.path.join(BASE_DIR, test_path)
     df = pd.read_csv(pd_path)
     return df
     
