@@ -12,9 +12,10 @@ from sentence_transformers import SentenceTransformer
 Helper code set up in notebooks/milestone1_exploration.ipynb
 """
 
-def init_session():
+def init_session(dbpath = "../data/processed/amazon_reviews.duckdb"):
+    """Initializes a duckdb session with a given path to a duckdb file."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    duckdb_path = os.path.join(base_dir, "../data/processed/amazon_reviews.duckdb")
+    duckdb_path = os.path.join(base_dir, dbpath)
     con = duckdb.connect(duckdb_path, read_only=True)
     return con
 
@@ -115,11 +116,12 @@ def create_langchain_review_generator(con):
                 }
             )
 
-def load_model_and_index():
+def load_model_and_index(faiss_bin = "../data/processed/faiss_index_merged.bin", faiss_pkl = "../data/processed/faiss_index_merged.pkl"):
+    """Loads the semantic FAISS index from faiss_bin and faiss_pkl."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     model    = SentenceTransformer("all-MiniLM-L6-v2")
-    index    = faiss.read_index(os.path.join(base_dir, "../data/processed/faiss_index_merged.bin"))
-    with open(os.path.join(base_dir, "../data/processed/faiss_index_merged.pkl"), 'rb') as f:
+    index    = faiss.read_index(os.path.join(base_dir, faiss_bin))
+    with open(os.path.join(base_dir, faiss_pkl), 'rb') as f:
         metadata = pickle.load(f)
     return model, index, metadata
 

@@ -6,12 +6,44 @@ import csv
 import warnings
 from datetime import datetime
 import nltk
+from pathlib import Path
 
 # Ensure the tokenizer is ready for app deployment
 try:
     nltk.data.find("tokenizers/punkt")
 except LookupError:
     nltk.download("punkt")
+
+# ── st.session_state setup ─────────────────────────────────────────────────────────────────
+
+# Session state memory values
+if "search_results" not in st.session_state:
+    st.session_state.last_query = ""
+    st.session_state.last_method = ""
+    st.session_state.search_results = []
+
+if "download_csv" not in st.session_state:
+    st.session_state.download_csv = pd.DataFrame(columns = ["timestamp","query","method","asin","title","vote"])
+
+if "flash_message" in st.session_state:
+    st.toast(st.session_state.flash_message, icon="✅")
+    del st.session_state.flash_message # Clear it so it only shows once
+
+
+# Setup parameter variables for file location
+
+DUCKDB_DF = "../data/processed/amazon_reviews.duckdb"
+FAISS_BIN = "../data/processed/faiss_index_merged.bin"
+FAISS_PKL = "../data/processed/faiss_index_merged.pkl"
+RUNNING_LOCALLY = True
+
+if not Path(DUCKDB_DF).exists(): # app is NOT running locally, use streamlitdeployment
+    DUCKDB_DF = "../data/streamlitdeployment/amazon_reviews.duckdb"
+    FAISS_BIN = "../data/streamlitdeployment/faiss_index_merged.bin"
+    FAISS_PKL = "../data/streamlitdeployment/faiss_index_merged.pkl"
+    RUNNING_LOCALLY = False
+
+
 
 
 # Suppress FutureWarnings from transformers and disable tokenizer parallelism
@@ -39,27 +71,16 @@ st.set_page_config(
 # @st.cache_resource ensures these heavy objects are only loaded once per session
 @st.cache_resource
 def get_connection():       # opens read-only DuckDB connection to processed database
-    return init_session()
+    return init_session(DUCKDB_DF)
 
 @st.cache_resource
 def get_semantic_resources():      # loads SentenceTransformer, FAISS, product metadata
-    return load_model_and_index()
+    return load_model_and_index(FAISS_BIN, FAISS_PKL)
 
 con = get_connection()
 sem_model, sem_index, sem_metadata = get_semantic_resources()
 
-# Session state memory values
-if "search_results" not in st.session_state:
-    st.session_state.last_query = ""
-    st.session_state.last_method = ""
-    st.session_state.search_results = []
 
-if "download_csv" not in st.session_state:
-    st.session_state.download_csv = pd.DataFrame(columns = ["timestamp","query","method","asin","title","vote"])
-
-if "flash_message" in st.session_state:
-    st.toast(st.session_state.flash_message, icon="✅")
-    del st.session_state.flash_message # Clear it so it only shows once
 
 # ── Feedback storage ───────────────────────────────────────────────────────────
 FEEDBACK_PATH = os.path.join(os.path.dirname(__file__), "../data/processed/feedback.csv")

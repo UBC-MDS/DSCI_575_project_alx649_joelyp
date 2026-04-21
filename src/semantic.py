@@ -53,14 +53,9 @@ def build_faiss_index(con):
     print(f"Saved index ({index.ntotal:,} vectors) and metadata.")
 
 
-def query_k_highest(con, query, k=10):
+def query_k_highest(con, query, index, metadata, k = 10):
     model = SentenceTransformer(MODEL_NAME)
     
-    # Load index and metadata
-    index = faiss.read_index(FAISS_INDEX_PATH)
-    with open(FAISS_META_PATH, 'rb') as f:
-        metadata = pickle.load(f)
-
     # Encode query and search
     query_vec = model.encode([query]).astype('float32')
     distances, indices = index.search(query_vec, k)
