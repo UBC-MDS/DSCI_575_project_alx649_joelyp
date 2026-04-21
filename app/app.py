@@ -5,6 +5,14 @@ import os
 import csv
 import warnings
 from datetime import datetime
+import nltk
+
+# Ensure the tokenizer is ready for app deployment
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt")
+
 
 # Suppress FutureWarnings from transformers and disable tokenizer parallelism
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -46,6 +54,9 @@ if "search_results" not in st.session_state:
     st.session_state.last_method = ""
     st.session_state.search_results = []
 
+if "download_csv" not in st.session_state:
+    st.session_state.download_csv = pd.DataFrame(columns = ["timestamp","query","method","asin","title","vote"])
+
 if "flash_message" in st.session_state:
     st.toast(st.session_state.flash_message, icon="✅")
     del st.session_state.flash_message # Clear it so it only shows once
@@ -67,20 +78,23 @@ def save_feedback(query, method, asin, title, vote):
     vote   : 'up' or 'down'
     """
     file_exists = os.path.exists(FEEDBACK_PATH)
+    new_row = {
+        'timestamp': datetime.now().isoformat(),
+        'query':     query,
+        'method':    method,
+        'asin':      asin,
+        'title':     title,
+        'vote':      vote
+    }
     with open(FEEDBACK_PATH, 'a', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(
             f, fieldnames=['timestamp', 'query', 'method', 'asin', 'title', 'vote']
         )
         if not file_exists:      # only write header row if file being created for first time
             writer.writeheader()
-        writer.writerow({
-            'timestamp': datetime.now().isoformat(),
-            'query':     query,
-            'method':    method,
-            'asin':      asin,
-            'title':     title,
-            'vote':      vote
-        })
+        writer.writerow(new_row)
+    st.session_state.download_csv.loc[len(st.session_state.download_csv)] = new_row
+
 
 # ── Star rating helper ─────────────────────────────────────────────────────────
 def stars(rating):
@@ -181,7 +195,24 @@ def render_result(doc, idx, query, method, show_score=True):
  
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.title("🌿 Amazon Patio, Lawn & Garden Search")
-st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
+
+h_col1, h_col2 = st.columns([3,1])
+with h_col1:
+    st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
+
+def start_download_message():
+    st.session_state.flash_message = "Downloading feedback to feedback.csv"
+
+with h_col2:
+    st.download_button(
+        label="⬇️ Download Feedback to CSV",
+        data=st.session_state.download_csv.to_csv().encode("utf-8"),
+        file_name="feedback.csv",
+        mime="text/csv",
+        icon=":material/download:",
+        on_click=start_download_message
+    )
+
 
 st.divider()
 

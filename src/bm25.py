@@ -2,8 +2,9 @@ from session_helper import *
 
 from nltk.tokenize import word_tokenize
 import string
+import nltk
 
-# nltk.download('punkt') already done from preprocessing
+nltk.download('punkt') # Ensure the tokenizer is ready for app deployment
 PUNCT_SET = set(string.punctuation)
 
 

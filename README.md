@@ -7,10 +7,10 @@ This project is a product recommendation tool utilizing the [2023 Amazon Review 
 
 ### Environment Setup
 
-Navigate to the repo folder after cloning and run the following:
+Navigate to the repo folder after cloning and run the following to reproduce the developing environment sufficient for running the app:
 
 ```
-conda env create -f environment.yml
+conda env create -f amz.yml
 conda activate amz
 ```
 
