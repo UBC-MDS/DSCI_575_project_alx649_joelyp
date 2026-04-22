@@ -5,3 +5,5 @@ data/processed*
 *.ipynb_checkpoints*
 src/dummytest.csv
 *__pycache__*
+
+.devcontainer*
