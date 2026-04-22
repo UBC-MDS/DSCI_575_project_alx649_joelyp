@@ -11,31 +11,32 @@ For Streamlit cloud deployment a random sample of 15,000
 products and up to 5 of the most helpful reviews (totalling a final 43243 reviews) was used to keep all files under GitHub's 100MB per-file limit.
 
 ### LLM Experiment
-- Models compared (name, family, size)
+Models compared (name, family, size)
 
 | Name | Family | Size | Description |
+|------|--------|------|-------------|
 | `llama-3.1-8b-instant` | LLaMA | 8B | Smallest/fastest model tested |
 |`qwen/qwen3-32b`| Qwen | 32B |  Mid-sized, open sourced, good previous experiences|
 | `openai/gpt-oss-20b` | OpenAI OSS | 20B | Mid-size, most conservative responses |
 | `llama-3.3-70b-versatile` | LLaMA | 70B | Largest model, surprisingly shallow outputs |
 
-See `results/milestone2_discussion` for more detailed explanation Qwen3-32B
+See `results/milestone2_discussion` for more detailed explanation for using Qwen3-32B
 
 ### System Prompt Used for all Models
 
-```You are a helpful Amazon shopping assistant specializing 
+\```You are a helpful Amazon shopping assistant specializing 
 in patio, lawn and garden products. Answer the question using ONLY the 
 provided product context. Be concise and cite product names when possible. 
-If the context does not contain enough information, say so.```
+If the context does not contain enough information, say so.\```
 
 ### Results and discussions
 `qwen/qwen3-32b` was retained as the default. It consistently produced the most 
 accurate, well-reasoned, and citation-rich responses across all query types. See 
 `results/llm_comparison.md` for the full side-by-side comparison of all 5 prompts.
 
-## Step 2: Additional Feature (state which option you chose)
+## Step 2: Additional Feature 
 
-### What You Implemented
+### What You Implemented 
 
 For milestone 3 we deployed the Amazon Recommender to a website based application on Streamlit, for which the current working deployment from the `main` branch can be found at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app).
 
@@ -69,8 +70,8 @@ Demonstration of all of the features can be found in [this explanation video:](r
 ## Step 4: Cloud Deployment Plan
 
 ### Data Storage
-- **Raw data**: stored locally only, gitignored — too large for any cloud storage
-- **Processed data**: `data/streamlitdeployment/` committed to GitHub (under 100MB per file)
+- **Raw data**: stored locally only, gitignored as too large for any cloud storage
+- **Processed data**: `data/streamlitdeployment/` committed to GitHub as smaller sample is under 100MB per file
 - **Vector index**: `faiss_index_deploy.bin` committed to GitHub in streamlitdeployment/
 - **BM25 index**: rebuilt at app startup from the deploy DuckDB via PRAGMA create_fts_index
 
