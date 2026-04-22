@@ -1,5 +1,7 @@
 # Milestone 1 Query Test Summary
 
+**NOTE: The results displayed here were run on the BM25 and Semantic methods built for tag [v0.1.0](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/tree/v0.1.0). It is expected that there is slight variance in the results compared to this report.**
+
 ## Results Discussion
 
 All results from the test queries stored in `data/processed/test_queries.csv` are stored in the `results/test_queries` folder. The CSV files are named in the format `{utilized method}_{expected_method}_{difficulty}`. For example, if you want to view the matching items the BM25 method returned for the query `patio chair with reclining features` (`expected_method = semantic, difficulty = 3`), the CSV file containing these results is `results/test_queries/BM24_semantic_3.csv`. 

@@ -9,19 +9,21 @@ import pickle
 from sentence_transformers import SentenceTransformer
 
 """
-Helper code set up in notebooks/milestone1_exploration.ipynb
+General helper code for retrival of files in data folder from either app/app.py
+or any file in src.
 """
 
-def init_session():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    duckdb_path = os.path.join(base_dir, "../data/processed/amazon_reviews.duckdb")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    
+def init_session(dbpath = "../data/processed/amazon_reviews.duckdb"):
+    """Initializes a duckdb session with a given path to a duckdb file."""
+    duckdb_path = os.path.join(BASE_DIR, dbpath)
     con = duckdb.connect(duckdb_path, read_only=True)
     return con
 
-def retrieve_test_queries():
+def retrieve_test_queries(test_path = "../data/processed/test_queries.csv"):
     """Return the Pandas dataframe with the test queries."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    pd_path = os.path.join(base_dir, "../data/processed/test_queries.csv")
+    pd_path = os.path.join(BASE_DIR, test_path)
     df = pd.read_csv(pd_path)
     return df
     
@@ -115,11 +117,12 @@ def create_langchain_review_generator(con):
                 }
             )
 
-def load_model_and_index():
+def load_model_and_index(faiss_bin = "../data/processed/faiss_index_merged.bin", faiss_pkl = "../data/processed/faiss_index_merged.pkl"):
+    """Loads the semantic FAISS index from faiss_bin and faiss_pkl."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     model    = SentenceTransformer("all-MiniLM-L6-v2")
-    index    = faiss.read_index(os.path.join(base_dir, "../data/processed/faiss_index_merged.bin"))
-    with open(os.path.join(base_dir, "../data/processed/faiss_index_merged.pkl"), 'rb') as f:
+    index    = faiss.read_index(os.path.join(base_dir, faiss_bin))
+    with open(os.path.join(base_dir, faiss_pkl), 'rb') as f:
         metadata = pickle.load(f)
     return model, index, metadata
 

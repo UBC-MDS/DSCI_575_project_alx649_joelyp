@@ -1,6 +1,9 @@
-data/*
+data/raw*
+data/processed*
 .env
 
 *.ipynb_checkpoints*
 src/dummytest.csv
 *__pycache__*
+
+.devcontainer*

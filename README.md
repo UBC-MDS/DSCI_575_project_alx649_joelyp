@@ -2,15 +2,22 @@
 
 This project is a product recommendation tool utilizing the [2023 Amazon Review Dataset](https://amazon-reviews-2023.github.io) for patio, lawn, and garden items. Currently, there are three retriever methods implemented in this project: a BM25 keyword retriever using DuckDB FTS index, a semantic retriever using FAISS and sentence-transformers, and a hybrid retriever combining both BM25 and semantic. These retrievers are supported by the usage of the `qwen3-32b` LLM model accesible through [Groq](https://groq.com) for a RAG querying process.
 
+[![Demo Video](https://youtu.be/hO5vYL_v1gM)](https://youtu.be/hO5vYL_v1gM)
+
+Main branch deployment - [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app)
+Dev branch deployment - [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app)
+
 
 ## Setup
 
+This is the entire process used for building and running the app locally on the full dataset.
+
 ### Environment Setup
 
-Navigate to the repo folder after cloning and run the following:
+Navigate to the repo folder after cloning and run the following to reproduce the developing environment sufficient for running the app:
 
 ```
-conda env create -f environment.yml
+conda env create -f amz.yml
 conda activate amz
 ```
 
@@ -49,20 +56,24 @@ Use the following command to run the app locally (note this may take a while to 
 streamlit run app/app.py
 ```
 
-Currently, the dev branch version of the app is deployed at [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app), and the main branch implementation is at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app). Currently both implementations have issues due to several of the resources only being available locally and pushing them to the main repo would be infeasible for their size; a potential plan is to create a miniture dataset for demonstration for deployment in milestone 3.
+Currently, the dev branch version of the app is deployed at [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app), and the main branch implementation is at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app). 
 
-During the app running, you are able to provide feedback on each queried result in a thumbs up/down system. The feedback for this system is currently stored locally in `data/processed/feedback.csv`. Note there is a potential race condition issue in which a feedback result could be logged twice due to how Streamlit's script processing functions and a race condition bug.
+During the app running, you are able to provide feedback on each queried result in a thumbs up/down system. The feedback for this system is stored as a continuously updating Pandas Dataframe that is only reset upon refresh on the page. You can download this dataframe using the `Download Feedback` button. If running locally, this feedback is also locally updated in `data/processed/feedback.csv`.
 
 
-## Source Files
+## Known Issues
 
-- `src/bm25.py` — BM25 keyword retriever using DuckDB FTS index
-- `src/semantic.py` — Semantic retriever using FAISS and sentence-transformers
-- `src/hybrid.py` — Hybrid retriever combining BM25 and semantic
-- `src/session_helper.py` — DuckDB connection and LangChain document utilities
-- `src/retrieval_metrics.py` — Runs all test queries through both retrievers and saves results to `results/test_queries/`
-- `src/prompts.py` - Prompts tested and used for the LLM in RAG querying
-- `src/rag_pipeline.py` - Code infrastructure for the RAG pipelines for each retriever
+Upon running the app locally, there is a possibility that feedback can be recorded twice within `data/processed/feedback.csv` as logged in [#31](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/31#issue-4279003444). This is an issue with a race condition bug within Streamlit.
+
+## Overview of Source Files Located in `src` Folder
+
+- `bm25.py` — BM25 keyword retriever using DuckDB FTS index
+- `semantic.py` — Semantic retriever using FAISS and sentence-transformers
+- `hybrid.py` — Hybrid retriever combining BM25 and semantic
+- `session_helper.py` — DuckDB connection and LangChain document utilities
+- `retrieval_metrics.py` — Runs all test queries through both retrievers and saves results to `results/test_queries/`
+- `prompts.py` - Prompts tested and used for the LLM in RAG querying
+- `rag_pipeline.py` - Code infrastructure for the RAG pipelines for each retriever
 
 
 ## Test Query Dataset
@@ -89,7 +100,9 @@ The queries labelled as `Other` are meant to be somewhat extraneous but possible
 
 ## Results
 
-Full discussion of the results from running the BM25 and semantic searches on `data/processed/test_queries.csv` can be found in `results/milestone1_discussion.md`.
+Full discussion of the work completed after milestones 1 and 2 can be found in `results/milestone1_discussion.md` and `results/milestone2_discussion.md`. The final report and discussion can be found in `results/final_discussion.md`. The `results/img` and `results/plots` folders contain documents that are referred to within these reports and initial EDA found in `notebooks/milestone1_exploration.ipynb`.
+
+All results from the test queries stored in `data/processed/test_queries.csv` are stored in the `results/test_queries` folder. The CSV files are named in the format `{utilized method}_{expected_method}_{difficulty}`. For example, if you want to view the matching items the BM25 method returned for the query `patio chair with reclining features` (`expected_method = semantic, difficulty = 3`), the CSV file containing these results is `results/test_queries/BM24_semantic_3.csv`.
 
 ## RAG Implementation and Workflow
 
@@ -97,6 +110,14 @@ Full discussion of the results from running the BM25 and semantic searches on `d
 - The LLM of choice was the Qwen3-32B model as it is a great open-sourced choice hosted by Groq - With 32B parameters teh Qwen3-32B model has strong reasoning abilities.
 
 The RAG search option can be used with either the BM25, Semantic retriever, or a hybrid options:
+
+**RAG workflow with BM25 retriever:**
+
+- Query gets tokenized using `nltk`
+- Top 25 most similar products retrieved by `fts_main_meta_search.match_bm25`
+- Product metadata formatted into a context block
+- Context + query injected into the prompt template
+- Groq LLM generates a grounded answer
 
 **RAG workflow with semantic retriever:**
 

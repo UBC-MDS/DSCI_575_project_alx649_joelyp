@@ -1,47 +1,23 @@
 import os
 import re
-import faiss
-import pickle
-#import numpy as np
 from collections.abc import Callable
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 from langchain_groq import ChatGroq
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from session_helper import init_session
+from session_helper import init_session, load_model_and_index
 import bm25
 from hybrid import HybridRetriever
 from prompts import prompt_template
 
 load_dotenv()
 
-# ── Paths and constants ────────────────────────────────────────────────────────
-
-base_dir = os.path.dirname(os.path.abspath(__file__))
-FAISS_INDEX_PATH = os.path.join(base_dir, "../data/processed/faiss_index_merged.bin")
-FAISS_META_PATH  = os.path.join(base_dir, "../data/processed/faiss_index_merged.pkl")
-MODEL_NAME       = "all-MiniLM-L6-v2"
-
-# ── Load models and index once at import time ──────────────────────────────────
-
-# Embedding model for encoding queries
-embedding_model = SentenceTransformer(MODEL_NAME)
-
-# FAISS index and associated product metadata
-faiss_index = faiss.read_index(FAISS_INDEX_PATH)
-with open(FAISS_META_PATH, 'rb') as f:
-    faiss_metadata = pickle.load(f)
-
-# DuckDB connection for BM25
-con = init_session()
-
 # ── Retrievers ─────────────────────────────────────────────────────────────────
 
-def retrieve_semantic(query, k=5):
+def retrieve_semantic(query, embedding_model, faiss_index, faiss_metadata, k=5):
     """
     Retrieve top k products using FAISS vector similarity.
     Returns a list of metadata dicts.
@@ -51,7 +27,7 @@ def retrieve_semantic(query, k=5):
     return [faiss_metadata[i] for i in indices[0]]
 
 
-def retrieve_bm25(query, k=5):
+def retrieve_bm25(con, query, k=5):
     """
     Retrieve top k products using BM25 keyword search via DuckDB FTS.
     Returns a list of metadata dicts.
@@ -60,13 +36,13 @@ def retrieve_bm25(query, k=5):
     return results.to_dict(orient='records')
 
 
-def retrieve_hybrid(query, k=5):
+def retrieve_hybrid(con, query, embedding_model, faiss_index, faiss_metadata, k=5):
     """
     Combine semantic and BM25 results, deduplicated by parent_asin.
     Semantic results take priority in ordering.
     Returns top k unique products.
     """
-    retriever = HybridRetriever(k = k)
+    retriever = HybridRetriever(embedding_model = embedding_model, faiss_index = faiss_index, faiss_metadata = faiss_metadata, k = k)
     results = retriever.query(con, query)
     return results.to_dict(orient='records')
 
@@ -85,9 +61,6 @@ def build_context(docs):
         f"Store: {doc.get('store', 'N/A')}"
         for doc in docs
     )
-
-
-
 
 
 # ── Output cleaner ─────────────────────────────────────────────────────────────
@@ -125,7 +98,7 @@ def build_rag_chain(llm: ChatGroq, context_func: Callable):
     
 
 
-def ask(query, llm, mode="hybrid"):
+def ask(query, llm, mode="hybrid", con = None, embedding_model = None, faiss_index = None, faiss_metadata = None):
     """
     Run a query through the RAG pipeline.
 
@@ -134,33 +107,37 @@ def ask(query, llm, mode="hybrid"):
     query : the user's search question
     llm : A ChatGroq instance configured with a valid API key
     mode  : 'semantic', 'bm25', or 'hybrid' (default)
+    con : DuckDB connection necessary for bm25 and hybrid methods
+    embedding_model : embedding model necessary for semantic and hybrid methods
+    faiss_index : optimal FAISS index file necessary for semantic and hybrid methods
+    faiss_metadata : optimal FAISS metadata file necessary for semantic and hybrid methods
 
     Returns
     -------
     dict with keys: answer, docs
     """
     if mode == "semantic":
-        docs   = retrieve_semantic(query, k = 25)
-        answer = strip_thinking(build_rag_chain(llm, retrieve_semantic).invoke(query))
+        docs   = retrieve_semantic(query, embedding_model, faiss_index, faiss_metadata, k = 25)
     elif mode == "bm25":
-        docs   = retrieve_bm25(query, k = 25)
-        # BM25-only uses same prompt, just different context
-        context = build_context(docs)
-        answer  = strip_thinking(
-            (prompt_template | llm | StrOutputParser()).invoke(
-                {"context": context, "question": query}
-            )
-        )
+        docs   = retrieve_bm25(con, query, k = 25)        
     else:
-        docs   = retrieve_hybrid(query, k = 25)
-        answer = strip_thinking(build_rag_chain(llm, retrieve_hybrid).invoke(query))
-
+        docs   = retrieve_hybrid(con, query, embedding_model, faiss_index, faiss_metadata, k = 25)
+    context = build_context(docs)
+    # RAG Chain
+    answer  = strip_thinking(
+        (prompt_template | llm | StrOutputParser()).invoke(
+            {"context": context, "question": query}
+        )
+    )
     return {"answer": answer, "docs": docs}
 
 
 # ── Smoke test ─────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+
+    con = init_session()
+    sem_model, faiss_index, faiss_metadata = load_model_and_index()
 
     # Setup LLM for RAG
     # NOTE: Ensure that .env has been setup with GROQ_API_KEY!
@@ -172,7 +149,13 @@ if __name__ == "__main__":
     except Exception as e:
         raise EnvironmentError(f"Ensure that the .env file has been configured with a working GROQ_API_KEY. Full details of the error are below:\n {e}")
 
-    result = ask("What is a good garden hose for 50ft?", llm = llm, mode="hybrid")
+    result = ask(query = "What is a good garden hose for 50ft?", 
+                 llm = llm, 
+                 mode="hybrid", 
+                 con = con, 
+                 embedding_model = sem_model, 
+                 faiss_index = faiss_index, 
+                 faiss_metadata = faiss_metadata)
     print("Answer:\n", result["answer"])
     print("\nTop products:")
     for d in result["docs"]:

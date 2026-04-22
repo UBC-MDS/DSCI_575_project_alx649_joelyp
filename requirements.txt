@@ -1,0 +1,32 @@
+# Core Web & App
+streamlit>=1.56.0
+
+# Data Processing & Storage
+duckdb>=1.0.0
+pandas
+fastparquet
+
+# LLM & RAG Framework
+langchain
+langchain-community
+langchain-openai
+langchain-groq
+langchain-google-genai
+langchain-anthropic
+langchain-huggingface
+langchain-text-splitters
+
+# Vector Search & NLP
+faiss-cpu
+rank_bm25>=0.2.2
+sentence-transformers==3.0.1
+transformers==4.44.2
+huggingface-hub==0.23.2
+tokenizers==0.19.1
+nltk
+spacy
+
+# Utilities
+python-dotenv
+pypdf
+plotly

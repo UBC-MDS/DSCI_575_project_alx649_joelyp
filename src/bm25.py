@@ -1,13 +1,13 @@
-from session_helper import *
+from session_helper import init_session
+from duckdb import DuckDBPyConnection
 
 from nltk.tokenize import word_tokenize
 import string
-
-# nltk.download('punkt') already done from preprocessing
-PUNCT_SET = set(string.punctuation)
+import nltk
 
 
 def preprocess_for_search(text):
+    """Returns a tokenized version of a text query string."""
     if not text:
         return ""
     
@@ -15,7 +15,7 @@ def preprocess_for_search(text):
     
     clean_tokens = [
         t for t in tokens 
-        if t not in PUNCT_SET and t.isalnum()
+        if t not in set(string.punctuation) and t.isalnum()
     ]
     
     return " ".join(clean_tokens)
@@ -64,6 +64,12 @@ def query_k_highest(con: DuckDBPyConnection, query: str, k: int = 10):
 
 
 if __name__ == "__main__":
+    # Ensure the tokenizer exists
+    try:
+        nltk.data.find("tokenizers/punkt")
+    except LookupError:
+        nltk.download("punkt")
+
     print("Startup session")
     con = init_session()
     
