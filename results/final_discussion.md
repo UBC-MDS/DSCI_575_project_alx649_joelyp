@@ -34,29 +34,24 @@ If the context does not contain enough information, say so.\```
 accurate, well-reasoned, and citation-rich responses across all query types. See 
 `results/llm_comparison.md` for the full side-by-side comparison of all 5 prompts.
 
-## Additional Feature 
+## Additional Feature Implemented
 
-### What You Implemented 
 
 For milestone 3 we deployed the Amazon Recommender to a website based application on Streamlit, for which the current working deployment from the `main` branch can be found at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app).
 
 
-Demonstration of all of the features can be found in [this explanation video:](replace with link to video for demo purposes later)
-
 
 ## Improved Documentation and Code Quality
 
-<!--This interestingly will probably just end up being the changelog for v0.3.0-->
-
-## Added
-
-- Working Streamlit deployment (#51)
-
 ### Documentation Updates
-<!-- Summary of `README` improvements -->
+
+- README deployment methods and instructions were updated along with a short instructional video previewing the working app and features.
+
 - Include a `Known Issues` section for minor bugs with the application that are to be expected (#46).
 
+### Feature Added
 
+- Working Streamlit deployment (#51)
 
 ## Changed
 
