@@ -63,9 +63,9 @@ if "locally_running" not in st.session_state:
     st.session_state.locally_running = True
 
 if not Path(DUCKDB_DF).exists(): # app is NOT running locally, use streamlitdeployment
-    DUCKDB_DF = "../data/streamlitdeployment/amazon_reviews.duckdb"
-    FAISS_BIN = "../data/streamlitdeployment/faiss_index_merged.bin"
-    FAISS_PKL = "../data/streamlitdeployment/faiss_index_merged.pkl"
+    DUCKDB_DF = "../data/streamlitdeployment/amazon_reviews_deploy.duckdb"
+    FAISS_BIN = "../data/streamlitdeployment/faiss_index_deploy.bin"
+    FAISS_PKL = "../data/streamlitdeployment/faiss_meta_deploy.pkl"
     st.session_state.locally_running = False
 
 
@@ -276,13 +276,13 @@ with tab_search:
             
             elif search_method == "Semantic":
                 # Vector similarity search via FAISS — captures intent, not just keywords
-                res     = semantic.query_k_highest(con, search_query, k=25)
+                res     = semantic.query_k_highest(search_query, sem_model, sem_index, sem_metadata, k=25)
                 results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
             
             else:  # Hybrid
                 # Combine both retrievers and deduplicate by parent_asin
                 # Semantic results take priority => BM25 fills in any gaps
-                hr = HybridRetriever(k = 25)
+                hr = HybridRetriever(sem_model, sem_index, sem_metadata, k = 25)
                 res = hr.query(con, search_query)
                 results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
             st.session_state.search_results = results
@@ -335,9 +335,9 @@ with tab_rag:
         with st.spinner("Retrieving and generating answer..."):
             # Use a unique key for RAG state to avoid Search Tab conflicts
             llm_instance = construct_groq_instance(rag_key)
-            result = ask(rag_query, llm=llm_instance, mode=rag_method.lower())
+            result = ask(rag_query, llm=llm_instance, mode=rag_method.lower(), con = con, embedding_model = sem_model, faiss_index = sem_index, faiss_metadata = sem_metadata)
             
-            st.session_state.rag_results = result  # Dedicated RAG key
+            st.session_state.rag_results = result  
             st.session_state.last_rag_query = rag_query
             st.session_state.last_rag_method = rag_method
 
