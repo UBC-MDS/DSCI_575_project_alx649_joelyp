@@ -4,7 +4,13 @@ This project is a product recommendation tool utilizing the [2023 Amazon Review 
 
 [![Demo Video](https://youtu.be/hO5vYL_v1gM)](https://youtu.be/hO5vYL_v1gM)
 
+Main branch deployment - [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app)
+Dev branch deployment - [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app)
+
+
 ## Setup
+
+This is the entire process used for building and running the app locally on the full dataset.
 
 ### Environment Setup
 

@@ -20,14 +20,16 @@ Models compared (name, family, size)
 |`qwen/qwen3-32b`| Qwen | 32B |  Mid-sized, open sourced, good previous experiences|
 | `llama-3.3-70b-versatile` | LLaMA | 70B | Largest model, surprisingly shallow outputs |
 
-See `results/milestone2_discussion` for more detailed explanation for using Qwen3-32B
+See `results/milestone2_discussion` for more detailed explanation for using Qwen3-32B.
 
 ### System Prompt Used for all Models
 
-\```You are a helpful Amazon shopping assistant specializing 
+```
+You are a helpful Amazon shopping assistant specializing 
 in patio, lawn and garden products. Answer the question using ONLY the 
 provided product context. Be concise and cite product names when possible. 
-If the context does not contain enough information, say so.\```
+If the context does not contain enough information, say so.
+```
 
 ### Results and discussions
 `qwen/qwen3-32b` was retained as the default. It consistently produced the most 
@@ -36,28 +38,33 @@ accurate, well-reasoned, and citation-rich responses across all query types. See
 
 ## Additional Feature Implemented
 
+For milestone 3 we deployed the Amazon Recommender to a website based application on Streamlit, for which the current working deployment from the `main` branch can be found at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app). To implement this from the local deployment, there were a few changes made:
 
-For milestone 3 we deployed the Amazon Recommender to a website based application on Streamlit, for which the current working deployment from the `main` branch can be found at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app).
+- A separate set of duckdb and faiss files was created in the `data/streamlitdeployment`. These files were built from a subset of 15000 products to comply with Github file size constraints, and the preprocessing steps taken are contained in `notebooks/deployment_preprocessing.ipynb`.
 
+- Direct logging to a local file for the feedback was removed as this file could not be created or edited within the Streamlit deployment. Instead a new feature was added in which all feedback for a session could be downloaded in CSV format.
+
+- The environment file was renamed to `amz.yml` and a `requirements.txt` file was introduced to ensure Streamlit utilized the `requirements.txt` file in setting up the packages necessary to run the app.
 
 
 ## Improved Documentation and Code Quality
 
 ### Documentation Updates
 
-- README deployment methods and instructions were updated along with a short instructional video previewing the working app and features.
-
-- Include a `Known Issues` section for minor bugs with the application that are to be expected (#46).
+- README deployment methods and instructions were updated along with a short instructional video previewing the working app and features. [(#52)](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/52)
+- Include a `Known Issues` section for minor bugs with the application that are to be expected [(#46)](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/46).
+- Add results from experimentation with various LLM models for RAG Mode [(#50)](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/50)
 
 ### Feature Added
 
-- Working Streamlit deployment (#51)
+- Download button to return feedback in CSV format [(#48)](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/48)
+- Working Streamlit deployment [(#51)](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/51) on a subset of 15000 products [(#49)](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/49)
 
 ## Changed
 
 ### Code Quality Changes
-- Changed the `GROQ_API_KEY` text box for RAG Mode to a hidden text field (#46)
-- Removed most of the constant file path values within the codebase (#51)
+- Changed the `GROQ_API_KEY` text box for RAG Mode to a hidden text field [(#46)](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/46)
+- Removed most of the constant file path values within the codebase [(#51)](https://github.com/UBC-MDS/DSCI_575_project_alx649_joelyp/pull/51)
 
 ## Current Deployment Specs
 
