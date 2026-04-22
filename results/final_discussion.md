@@ -70,19 +70,25 @@ Demonstration of all of the features can be found in [this explanation video:](r
 
 ## Cloud Deployment Plan
 
+For this project we utilized Streamlit for deployment to (https://amazon-recommender-alx649-joelyp.streamlit.app/)[https://amazon-recommender-alx649-joelyp.streamlit.app/] from a public GitHub repository. Utilizing AWS would have a similar process with additional changes primarily in data storage so that the entire dataset could be utilized.
+
 ### Data Storage
-- **Raw data**: stored locally only, gitignored as too large for any cloud storage
-- **Processed data**: `data/streamlitdeployment/` committed to GitHub as smaller sample is under 100MB per file
-- **Vector index**: `faiss_index_deploy.bin` committed to GitHub in streamlitdeployment/
-- **BM25 index**: rebuilt at app startup from the deploy DuckDB via PRAGMA create_fts_index
+
+The main draw back of deploying from a public Github repository is that every file on GitHub is restricted to being at most 100 MB, which is why a random sample of 15000 products and most of their reviews were utilized for this deployment. A single S3 bucket can be setup to store all data and indices similar to this repository, just on a larger scale. This would be the locations of all of the respective files:
+
+|Files|Location|
+|-|-|
+|Raw Data| `raw/meta_Patio_Lawn_and_Garden.jsonl` , `raw/Patio_Lawn_and_Garden.jsonl`|
+|Processed duckDB|`processed/amazon_reviews.duckdb`|
+|FAISS index|`processed/faiss_index_merged.bin`,`processed/faiss_index_merged.pkl`|
+
+The [2023 Amazon Patio and Home Dataset](https://amazon-reviews-2023.github.io) used was roughly 10.5 GB, and would be larger if we were to consider additional data from further years being added. However, the FAISS index only relies on the processed duckDB to be generated, so upon concating new product metadata and reviews on a monthly basis to `processed/amazon_reviews.duckdb`, the raw data as well as the intermediate files generated to update the duckDB would be removable on a regular basis to prevent this amount of data from being too excessive for storage costs. Each month the BM25 index would also be recreated in the processed DuckDB via `PRAGMA create_fts_index`; from local testing, this took under 10 minutes each time, so temporarily pausing the service and rerunning this with a basic EC2 instance would be sufficient.
+
 
 ### Compute
-- App runs on Streamlit Community Cloud's free tier
-- Concurrency is handled by Streamlit's built-in session isolation and each user gets 
-  their own session state
-- All LLM inference uses Groq API: fully hosted, no local compute required
+
+Streamlit Community Cloud's free tier was utilized for running this app. Website testing showed that queries were very time efficient, each taking at most a few seconds before displaying results. Thus it would be possible to setup a cluster of on-demand `t3a.micro` instances, this way each user could when needed be assigned a node to run the app, thus solving the concurrency challenge. In the case that a single node has to be dedicated to keeping a single Streamlit website up for the app, a larger instance such as `t3a.large` can be setup as a head node with several `t3a.nano` executor nodes on demand to handle feedback logging; in this scenario concurrency would be handled by Streamlit's built-in session isolation and each user gets their own session state. From how we set up the RAG mode, all LLM inference would use Groq API, thus being fully hosted, and no local compute being required.
 
 ### Streaming/Updates
-- New products would require rerunning `deployment_preprocessing.ipynb` to regenerate 
-  the deploy DuckDB and FAISS index, then committing the updated files
-- The pipeline has no automated update mechanism and updates are manual at this time
+
+Updating the data was partially discussed in the `Data Storage` section, and using the above infrastructure improvments specifically for cloud deployment, the amount of time to rerun `deployment_preprocessing.ipynb` would mostly be dependent on the amount of new data coming in instead of requiring a full rebuild each time. The only part not addressed being how the FAISS index would be updated. For the 15000 product website deployment, it took about half an hour locally to create the FAISS index. What is possible then is to create a separate ECS cluster specifically for the task of reading through `processed/amazon_reviews.duckdb` and rebuilding the FAISS index, speeding this task up with several `t3a.large` worker nodes as necessary. Even if this process takes a few hours or longer, this setup would not interfere with the actively running Streamlit cloud deployment, and only upon completion can this new FAISS index replace the old one. Furthermore, the performance of the semantic search using a FAISS index that does not include every product in the database is still relatively high; within our local deployment, we took a sample of 20000 of the 367000+ products to build a manageable FAISS index, and this was still sufficent to produce results that were qualatitively stronger than the BM25 method on its own. 
