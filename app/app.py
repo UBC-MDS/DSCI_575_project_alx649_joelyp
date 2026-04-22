@@ -71,7 +71,7 @@ FAISS_PKL = "../data/processed/faiss_index_merged.pkl"
 if "locally_running" not in st.session_state:
     st.session_state.locally_running = True
 
-if not Path(DUCKDB_DF).exists(): # app is NOT running locally, use streamlitdeployment
+if not Path(os.path.join(os.path.dirname(os.path.abspath(__file__)),DUCKDB_DF)).exists(): # app is NOT running locally, use streamlitdeployment
     DUCKDB_DF = "../data/streamlitdeployment/amazon_reviews_deploy.duckdb"
     FAISS_BIN = "../data/streamlitdeployment/faiss_index_deploy.bin"
     FAISS_PKL = "../data/streamlitdeployment/faiss_meta_deploy.pkl"
