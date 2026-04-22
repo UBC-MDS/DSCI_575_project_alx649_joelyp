@@ -1,6 +1,6 @@
 # Final Discussion
 
-## Step 1: Improve Your Workflow
+## Improved Workflow
 
 ### Dataset Scaling
 
@@ -16,8 +16,8 @@ Models compared (name, family, size)
 | Name | Family | Size | Description |
 |------|--------|------|-------------|
 | `llama-3.1-8b-instant` | LLaMA | 8B | Smallest/fastest model tested |
-|`qwen/qwen3-32b`| Qwen | 32B |  Mid-sized, open sourced, good previous experiences|
 | `openai/gpt-oss-20b` | OpenAI OSS | 20B | Mid-size, most conservative responses |
+|`qwen/qwen3-32b`| Qwen | 32B |  Mid-sized, open sourced, good previous experiences|
 | `llama-3.3-70b-versatile` | LLaMA | 70B | Largest model, surprisingly shallow outputs |
 
 See `results/milestone2_discussion` for more detailed explanation for using Qwen3-32B
@@ -34,7 +34,7 @@ If the context does not contain enough information, say so.\```
 accurate, well-reasoned, and citation-rich responses across all query types. See 
 `results/llm_comparison.md` for the full side-by-side comparison of all 5 prompts.
 
-## Step 2: Additional Feature 
+## Additional Feature 
 
 ### What You Implemented 
 
@@ -46,7 +46,7 @@ For milestone 3 we deployed the Amazon Recommender to a website based applicatio
 Demonstration of all of the features can be found in [this explanation video:](replace with link to video for demo purposes later)
 
 
-## Step 3: Improve Documentation and Code Quality
+## Improved Documentation and Code Quality
 
 <!--This interestingly will probably just end up being the changelog for v0.3.0-->
 
@@ -67,7 +67,7 @@ Demonstration of all of the features can be found in [this explanation video:](r
 
 
 
-## Step 4: Cloud Deployment Plan
+## Cloud Deployment Plan
 
 ### Data Storage
 - **Raw data**: stored locally only, gitignored as too large for any cloud storage
