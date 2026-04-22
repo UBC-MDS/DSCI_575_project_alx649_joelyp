@@ -13,11 +13,12 @@ import semantic
 
 class HybridRetriever:
     
-    def __init__(self, faiss_index, faiss_metadata, k = 10, bm_strength = 0.5):
+    def __init__(self, embedding_model, faiss_index, faiss_metadata, k = 10, bm_strength = 0.5):
         self.k = k
         self.bm_strength = bm_strength
         self.semantic_strength = 1 - self.bm_strength
         self.merge_cols = ["parent_asin","title","price","store","average_rating","image_url"]
+        self.embedding_model = embedding_model
         self.faiss_index = faiss_index
         self.faiss_metadata = faiss_metadata
         
@@ -25,7 +26,7 @@ class HybridRetriever:
     def query(self, con: DuckDBPyConnection, text: str):
         # Obtain sufficient results such that overlap is very likely
         bm25_results = bm25.query_k_highest(con, text, 10000)
-        semantic_results = semantic.query_k_highest(con, text, self.faiss_index, self.faiss_metadata, 10000)
+        semantic_results = semantic.query_k_highest(text, self.embedding_model, self.faiss_index, self.faiss_metadata, 10000)
         
         # Normalize scores to a scale of 0 to 1 when combined (higher is better)
         semantic_results["score"] = semantic_results["score"]-min(semantic_results["score"]) # best result is 0, must inverse the scale

@@ -1,7 +1,7 @@
 import bm25
 import semantic
 import hybrid
-from session_helper import init_session, retrieve_test_queries
+from session_helper import init_session, retrieve_test_queries, load_model_and_index
 import os
 
 
@@ -12,7 +12,9 @@ if __name__ == "__main__":
     test_queries = retrieve_test_queries()
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
-    hr = hybrid.HybridRetriever(k = 10)
+    embedding_model, faiss_index, faiss_metadata = load_model_and_index()
+
+    hr = hybrid.HybridRetriever(embedding_model, faiss_index, faiss_metadata, k = 10)
 
     for row in test_queries.itertuples():
 
@@ -23,7 +25,7 @@ if __name__ == "__main__":
         bm25_result.to_csv(path)
 
         # Save semantic query results
-        semantic_result = semantic.query_k_highest(con, row.query, 10)
+        semantic_result = semantic.query_k_highest(row.query, embedding_model, faiss_index, faiss_metadata, 10)
         filepath = f"semantic_{row.expected_method}_{row.difficulty}.csv"
         path = os.path.join(base_dir, f"../results/test_queries/{filepath}")
         semantic_result.to_csv(path)
