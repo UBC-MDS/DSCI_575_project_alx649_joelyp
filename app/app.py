@@ -8,11 +8,20 @@ from datetime import datetime
 import nltk
 from pathlib import Path
 
-# Ensure the tokenizer is ready for app deployment
-try:
-    nltk.data.find("tokenizers/punkt")
-except LookupError:
-    nltk.download("punkt")
+# Ensure the BM25 resources are ready for app deployment
+
+resources = [
+    ('tokenizers/punkt', 'punkt'),
+    ('tokenizers/punkt_tab', 'punkt_tab'),
+    ('corpora/stopwords', 'stopwords'),
+]
+
+for path, package in resources:
+    try:
+        nltk.data.find(path)
+    except LookupError:
+        nltk.download(package)
+
 
 # ── st.session_state setup ─────────────────────────────────────────────────────────────────
 
