@@ -34,31 +34,24 @@ If the context does not contain enough information, say so.\```
 accurate, well-reasoned, and citation-rich responses across all query types. See 
 `results/llm_comparison.md` for the full side-by-side comparison of all 5 prompts.
 
-## Additional Feature 
+## Additional Feature Implemented
 
-### What You Implemented 
 
 For milestone 3 we deployed the Amazon Recommender to a website based application on Streamlit, for which the current working deployment from the `main` branch can be found at [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app).
 
-- Description of the feature
-(summarize README?)
-
-Demonstration of all of the features can be found in [this explanation video:](replace with link to video for demo purposes later)
 
 
 ## Improved Documentation and Code Quality
 
-<!--This interestingly will probably just end up being the changelog for v0.3.0-->
-
-## Added
-
-- Working Streamlit deployment (#51)
-
 ### Documentation Updates
-<!-- Summary of `README` improvements -->
+
+- README deployment methods and instructions were updated along with a short instructional video previewing the working app and features.
+
 - Include a `Known Issues` section for minor bugs with the application that are to be expected (#46).
 
+### Feature Added
 
+- Working Streamlit deployment (#51)
 
 ## Changed
 
@@ -66,9 +59,7 @@ Demonstration of all of the features can be found in [this explanation video:](r
 - Changed the `GROQ_API_KEY` text box for RAG Mode to a hidden text field (#46)
 - Removed most of the constant file path values within the codebase (#51)
 
-
-
-## Cloud Deployment Plan
+## Current Deployment Specs
 
 For this project we utilized Streamlit for deployment to (https://amazon-recommender-alx649-joelyp.streamlit.app/)[https://amazon-recommender-alx649-joelyp.streamlit.app/] from a public GitHub repository. Utilizing AWS would have a similar process with additional changes primarily in data storage so that the entire dataset could be utilized.
 
@@ -90,5 +81,41 @@ The [2023 Amazon Patio and Home Dataset](https://amazon-reviews-2023.github.io) 
 Streamlit Community Cloud's free tier was utilized for running this app. Website testing showed that queries were very time efficient, each taking at most a few seconds before displaying results. Thus it would be possible to setup a cluster of on-demand `t3a.micro` instances, this way each user could when needed be assigned a node to run the app, thus solving the concurrency challenge. In the case that a single node has to be dedicated to keeping a single Streamlit website up for the app, a larger instance such as `t3a.large` can be setup as a head node with several `t3a.nano` executor nodes on demand to handle feedback logging; in this scenario concurrency would be handled by Streamlit's built-in session isolation and each user gets their own session state. From how we set up the RAG mode, all LLM inference would use Groq API, thus being fully hosted, and no local compute being required.
 
 ### Streaming/Updates
+- New products would require rerunning `deployment_preprocessing.ipynb` to regenerate 
+  the deploy DuckDB and FAISS index, then committing the updated files
+- The pipeline has no automated update mechanism and updates are manual at this time
 
-Updating the data was partially discussed in the `Data Storage` section, and using the above infrastructure improvments specifically for cloud deployment, the amount of time to rerun `deployment_preprocessing.ipynb` would mostly be dependent on the amount of new data coming in instead of requiring a full rebuild each time. The only part not addressed being how the FAISS index would be updated. For the 15000 product website deployment, it took about half an hour locally to create the FAISS index. What is possible then is to create a separate ECS cluster specifically for the task of reading through `processed/amazon_reviews.duckdb` and rebuilding the FAISS index, speeding this task up with several `t3a.large` worker nodes as necessary. Even if this process takes a few hours or longer, this setup would not interfere with the actively running Streamlit cloud deployment, and only upon completion can this new FAISS index replace the old one. Furthermore, the performance of the semantic search using a FAISS index that does not include every product in the database is still relatively high; within our local deployment, we took a sample of 20000 of the 367000+ products to build a manageable FAISS index, and this was still sufficent to produce results that were qualatitively stronger than the BM25 method on its own. 
+### Cloud Deployment Plan (AWS)
+
+### Data Storage
+- **Raw data**: Stored in **Amazon S3** (standard tier): cost-effective for large 
+  files, never committed to git. The full 10GB dataset would cost ~$0.23/month to store.
+- **Processed data**: Also in **S3**: the cleaned CSVs, parquet files, and DuckDB 
+  would live in a private S3 bucket and be pulled to the compute instance on startup.
+- **Vector index**: FAISS index stored in **S3**: loaded into memory at app startup. 
+  For production scale, this would be replaced with **Amazon OpenSearch** which supports native vector similarity search without loading everything into RAM.
+- **BM25 index**: Rebuilt at startup from the DuckDB via `PRAGMA create_fts_index`, 
+  or replaced with **Amazon OpenSearch** full-text search which natively supports BM25.
+
+### Compute
+- **App runtime**: **AWS Elastic Beanstalk** or **AWS App Runner** for the Streamlit 
+  app: both handle auto-scaling and deployment from a container image. Alternatively 
+  an **EC2 t3.medium** instance (~$30/month) for a simple single-server deployment.
+- **Concurrency**: With Elastic Beanstalk, multiple EC2 instances can run behind an 
+  **Application Load Balancer**: each user session is routed to an available instance. 
+  The FAISS index would be loaded once per instance and shared across sessions via 
+  Streamlit's `@st.cache_resource`.
+- **LLM inference**: Continue using **Groq API** for LLM calls: fully hosted, no 
+  GPU compute needed on our end. For a self-hosted alternative, **AWS SageMaker** 
+  could host the Qwen model on a GPU instance, but at significantly higher cost.
+
+### Streaming/Updates
+- New product data would land in **S3** via a scheduled **AWS Lambda** function that 
+  pulls from the Amazon Reviews dataset periodically.
+- An **AWS Glue** ETL job would rerun the preprocessing pipeline to update the DuckDB 
+  and regenerate the FAISS index, saving the new files back to S3.
+- The app would pick up the new index on its next cold start, or a manual restart 
+  could be triggered via Elastic Beanstalk's rolling deployment.
+- For real-time updates, **Amazon Kinesis** could stream new review data directly into 
+  the pipeline, though this is overkill for a product recommendation tool with 
+  infrequent dataset updates.
