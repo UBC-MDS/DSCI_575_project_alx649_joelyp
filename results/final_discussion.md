@@ -52,6 +52,8 @@ Demonstration of all of the features can be found in [this explanation video:](r
 
 ## Added
 
+- Working Streamlit deployment (#51)
+
 ### Documentation Updates
 <!-- Summary of `README` improvements -->
 - Include a `Known Issues` section for minor bugs with the application that are to be expected (#46).
@@ -62,8 +64,7 @@ Demonstration of all of the features can be found in [this explanation video:](r
 
 ### Code Quality Changes
 - Changed the `GROQ_API_KEY` text box for RAG Mode to a hidden text field (#46)
-
-## Removed
+- Removed most of the constant file path values within the codebase (#51)
 
 
 

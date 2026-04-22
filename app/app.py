@@ -6,12 +6,37 @@ import csv
 import warnings
 from datetime import datetime
 import nltk
+from pathlib import Path
 
-# Ensure the tokenizer is ready for app deployment
-try:
-    nltk.data.find("tokenizers/punkt")
-except LookupError:
-    nltk.download("punkt")
+# Ensure the BM25 resources are ready for app deployment
+
+resources = [
+    ('tokenizers/punkt', 'punkt'),
+    ('tokenizers/punkt_tab', 'punkt_tab'),
+    ('corpora/stopwords', 'stopwords'),
+]
+
+for path, package in resources:
+    try:
+        nltk.data.find(path)
+    except LookupError:
+        nltk.download(package)
+
+
+# ── st.session_state setup ─────────────────────────────────────────────────────────────────
+
+# Session state memory values
+if "search_results" not in st.session_state:
+    st.session_state.last_query = ""
+    st.session_state.last_method = ""
+    st.session_state.search_results = []
+
+if "download_csv" not in st.session_state:
+    st.session_state.download_csv = pd.DataFrame(columns = ["timestamp","query","method","asin","title","vote"])
+
+if "flash_message" in st.session_state:
+    st.toast(st.session_state.flash_message, icon="✅")
+    del st.session_state.flash_message # Clear it so it only shows once
 
 
 # Suppress FutureWarnings from transformers and disable tokenizer parallelism
@@ -36,30 +61,36 @@ st.set_page_config(
 )
 
 # ── Load resources ─────────────────────────────────────────────────────────────
+
+# Setup parameter variables for file location
+
+DUCKDB_DF = "../data/processed/amazon_reviews.duckdb"
+FAISS_BIN = "../data/processed/faiss_index_merged.bin"
+FAISS_PKL = "../data/processed/faiss_index_merged.pkl"
+
+if "locally_running" not in st.session_state:
+    st.session_state.locally_running = True
+
+if not Path(DUCKDB_DF).exists(): # app is NOT running locally, use streamlitdeployment
+    DUCKDB_DF = "../data/streamlitdeployment/amazon_reviews_deploy.duckdb"
+    FAISS_BIN = "../data/streamlitdeployment/faiss_index_deploy.bin"
+    FAISS_PKL = "../data/streamlitdeployment/faiss_meta_deploy.pkl"
+    st.session_state.locally_running = False
+
+
 # @st.cache_resource ensures these heavy objects are only loaded once per session
 @st.cache_resource
 def get_connection():       # opens read-only DuckDB connection to processed database
-    return init_session()
+    return init_session(DUCKDB_DF)
 
 @st.cache_resource
 def get_semantic_resources():      # loads SentenceTransformer, FAISS, product metadata
-    return load_model_and_index()
+    return load_model_and_index(FAISS_BIN, FAISS_PKL)
 
 con = get_connection()
 sem_model, sem_index, sem_metadata = get_semantic_resources()
 
-# Session state memory values
-if "search_results" not in st.session_state:
-    st.session_state.last_query = ""
-    st.session_state.last_method = ""
-    st.session_state.search_results = []
 
-if "download_csv" not in st.session_state:
-    st.session_state.download_csv = pd.DataFrame(columns = ["timestamp","query","method","asin","title","vote"])
-
-if "flash_message" in st.session_state:
-    st.toast(st.session_state.flash_message, icon="✅")
-    del st.session_state.flash_message # Clear it so it only shows once
 
 # ── Feedback storage ───────────────────────────────────────────────────────────
 FEEDBACK_PATH = os.path.join(os.path.dirname(__file__), "../data/processed/feedback.csv")
@@ -86,13 +117,14 @@ def save_feedback(query, method, asin, title, vote):
         'title':     title,
         'vote':      vote
     }
-    with open(FEEDBACK_PATH, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(
-            f, fieldnames=['timestamp', 'query', 'method', 'asin', 'title', 'vote']
-        )
-        if not file_exists:      # only write header row if file being created for first time
-            writer.writeheader()
-        writer.writerow(new_row)
+    if st.session_state.locally_running: # Only write to csv locally if running locally
+        with open(FEEDBACK_PATH, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(
+                f, fieldnames=['timestamp', 'query', 'method', 'asin', 'title', 'vote']
+            )
+            if not file_exists:      # only write header row if file being created for first time
+                writer.writeheader()
+            writer.writerow(new_row)
     st.session_state.download_csv.loc[len(st.session_state.download_csv)] = new_row
 
 
@@ -198,8 +230,10 @@ st.title("🌿 Amazon Patio, Lawn & Garden Search")
 
 h_col1, h_col2 = st.columns([3,1])
 with h_col1:
-    st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
-
+    if st.session_state.locally_running:
+        st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
+    else:
+        st.markdown("### Search 15,000 products using keyword, semantic, hybrid, or AI-powered RAG search.")
 def start_download_message():
     st.session_state.flash_message = "Downloading feedback to feedback.csv"
 
@@ -254,13 +288,13 @@ with tab_search:
             
             elif search_method == "Semantic":
                 # Vector similarity search via FAISS — captures intent, not just keywords
-                res     = semantic.query_k_highest(con, search_query, k=25)
+                res     = semantic.query_k_highest(search_query, sem_model, sem_index, sem_metadata, k=25)
                 results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
             
             else:  # Hybrid
                 # Combine both retrievers and deduplicate by parent_asin
                 # Semantic results take priority => BM25 fills in any gaps
-                hr = HybridRetriever(k = 25)
+                hr = HybridRetriever(sem_model, sem_index, sem_metadata, k = 25)
                 res = hr.query(con, search_query)
                 results = res.to_dict(orient='records') if isinstance(res, pd.DataFrame) else res
             st.session_state.search_results = results
@@ -297,8 +331,11 @@ with tab_rag:
                 options=["Hybrid", "Semantic", "BM25"],
                 horizontal=True
             )
+        rag_helper_text = "Add Groq API Key here (go to https://console.groq.com/keys to generate a key)"
+        if st.session_state.locally_running: 
+            rag_helper_text = "Add Groq API Key here (tries to use .env key if not entered)"
         rag_key = st.text_input(
-            "Add Groq API Key here (tries to use .env key if not entered and running locally)",
+            rag_helper_text,
             placeholder="gsk_0123456789XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
             type = "password"
         )
@@ -313,9 +350,9 @@ with tab_rag:
         with st.spinner("Retrieving and generating answer..."):
             # Use a unique key for RAG state to avoid Search Tab conflicts
             llm_instance = construct_groq_instance(rag_key)
-            result = ask(rag_query, llm=llm_instance, mode=rag_method.lower())
+            result = ask(rag_query, llm=llm_instance, mode=rag_method.lower(), con = con, embedding_model = sem_model, faiss_index = sem_index, faiss_metadata = sem_metadata)
             
-            st.session_state.rag_results = result  # Dedicated RAG key
+            st.session_state.rag_results = result  
             st.session_state.last_rag_query = rag_query
             st.session_state.last_rag_method = rag_method
 
