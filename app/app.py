@@ -108,13 +108,14 @@ def save_feedback(query, method, asin, title, vote):
         'title':     title,
         'vote':      vote
     }
-    with open(FEEDBACK_PATH, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(
-            f, fieldnames=['timestamp', 'query', 'method', 'asin', 'title', 'vote']
-        )
-        if not file_exists:      # only write header row if file being created for first time
-            writer.writeheader()
-        writer.writerow(new_row)
+    if st.session_state.locally_running: # Only write to csv locally if running locally
+        with open(FEEDBACK_PATH, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(
+                f, fieldnames=['timestamp', 'query', 'method', 'asin', 'title', 'vote']
+            )
+            if not file_exists:      # only write header row if file being created for first time
+                writer.writeheader()
+            writer.writerow(new_row)
     st.session_state.download_csv.loc[len(st.session_state.download_csv)] = new_row
 
 
@@ -220,8 +221,10 @@ st.title("🌿 Amazon Patio, Lawn & Garden Search")
 
 h_col1, h_col2 = st.columns([3,1])
 with h_col1:
-    st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
-
+    if st.session_state.locally_running:
+        st.markdown("### Search 367,000+ products using keyword, semantic, hybrid, or AI-powered RAG search.")
+    else:
+        st.markdown("### Search 15,000 products using keyword, semantic, hybrid, or AI-powered RAG search.")
 def start_download_message():
     st.session_state.flash_message = "Downloading feedback to feedback.csv"
 
@@ -319,8 +322,11 @@ with tab_rag:
                 options=["Hybrid", "Semantic", "BM25"],
                 horizontal=True
             )
+        rag_helper_text = "Add Groq API Key here (go to https://console.groq.com/keys to generate a key)"
+        if st.session_state.locally_running: 
+            rag_helper_text = "Add Groq API Key here (tries to use .env key if not entered)"
         rag_key = st.text_input(
-            "Add Groq API Key here (tries to use .env key if not entered and running locally)",
+            rag_helper_text,
             placeholder="gsk_0123456789XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
             type = "password"
         )
