@@ -2,7 +2,7 @@
 
 This project is a product recommendation tool utilizing the [2023 Amazon Review Dataset](https://amazon-reviews-2023.github.io) for patio, lawn, and garden items. Currently, there are three retriever methods implemented in this project: a BM25 keyword retriever using DuckDB FTS index, a semantic retriever using FAISS and sentence-transformers, and a hybrid retriever combining both BM25 and semantic. These retrievers are supported by the usage of the `qwen3-32b` LLM model accesible through [Groq](https://groq.com) for a RAG querying process.
 
-[![Demo Video](https://youtu.be/hO5vYL_v1gM)](https://youtu.be/hO5vYL_v1gM)
+[Demo Video](https://youtu.be/hO5vYL_v1gM)
 
 Main branch deployment - [https://amazon-recommender-alx649-joelyp.streamlit.app](https://amazon-recommender-alx649-joelyp.streamlit.app)
 Dev branch deployment - [https://amazon-recommender-dev.streamlit.app](https://amazon-recommender-dev.streamlit.app)
